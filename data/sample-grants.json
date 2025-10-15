@@ -1,0 +1,129 @@
+[
+  {
+    "id": "grants.gov-12345",
+    "title": "USDA Rural Business Development Grants",
+    "agency": "Department of Agriculture",
+    "opportunityNumber": "RBDG-2024",
+    "opportunityCategory": "Discretionary",
+    "summary": "Supports targeted technical assistance, training, and other activities leading to the development or expansion of small and emerging private businesses in rural areas.",
+    "fundingInstrument": "Grant",
+    "estimatedFunding": 250000,
+    "awardFloor": 10000,
+    "awardCeiling": 50000,
+    "expectedNumberOfAwards": 60,
+    "closeDate": "2024-06-28",
+    "postedDate": "2024-03-15",
+    "eligibilities": [
+      {
+        "type": "State governments",
+        "states": ["AL", "AR", "KY", "MS", "NC", "SC", "TN", "VA", "WV"]
+      },
+      {
+        "type": "Nonprofits",
+        "states": []
+      }
+    ],
+    "focusAreas": ["Rural Development", "Economic Development"],
+    "url": "https://www.grants.gov/web/grants/view-opportunity.html?oppId=12345"
+  },
+  {
+    "id": "grants.gov-67890",
+    "title": "Community Facilities Direct Loan & Grant Program",
+    "agency": "Department of Agriculture",
+    "opportunityNumber": "CFDL-2024",
+    "opportunityCategory": "Mandatory",
+    "summary": "Develops essential community facilities in rural areas including health care, public safety, and educational services.",
+    "fundingInstrument": "Grant",
+    "estimatedFunding": 550000,
+    "awardFloor": 20000,
+    "awardCeiling": 250000,
+    "expectedNumberOfAwards": 80,
+    "closeDate": "2024-08-15",
+    "postedDate": "2024-01-12",
+    "eligibilities": [
+      {
+        "type": "State governments",
+        "states": ["AK", "AZ", "ID", "MT", "ND", "NM", "SD", "UT", "WY"]
+      },
+      {
+        "type": "Nonprofits",
+        "states": []
+      }
+    ],
+    "focusAreas": ["Infrastructure", "Public Facilities"],
+    "url": "https://www.grants.gov/web/grants/view-opportunity.html?oppId=67890"
+  },
+  {
+    "id": "grants.gov-24680",
+    "title": "EDA Build to Scale Program",
+    "agency": "Department of Commerce",
+    "opportunityNumber": "B2S-2024",
+    "opportunityCategory": "Discretionary",
+    "summary": "Invests in regional innovation economies by supporting scalable startups and technology entrepreneurship.",
+    "fundingInstrument": "Cooperative Agreement",
+    "estimatedFunding": 45000000,
+    "awardFloor": 500000,
+    "awardCeiling": 2000000,
+    "expectedNumberOfAwards": 60,
+    "closeDate": "2024-07-31",
+    "postedDate": "2024-02-05",
+    "eligibilities": [
+      {
+        "type": "State governments",
+        "states": []
+      },
+      {
+        "type": "Nonprofits",
+        "states": []
+      }
+    ],
+    "focusAreas": ["Economic Development", "Technology"],
+    "url": "https://www.grants.gov/web/grants/view-opportunity.html?oppId=24680"
+  },
+  {
+    "id": "grants.gov-13579",
+    "title": "HRSA Rural Health Network Development Program",
+    "agency": "Department of Health and Human Services",
+    "opportunityNumber": "HRSA-24-025",
+    "opportunityCategory": "Discretionary",
+    "summary": "Supports integrated health care networks that improve health outcomes, workforce, and services in rural communities.",
+    "fundingInstrument": "Grant",
+    "estimatedFunding": 15000000,
+    "awardFloor": 100000,
+    "awardCeiling": 325000,
+    "expectedNumberOfAwards": 50,
+    "closeDate": "2024-05-24",
+    "postedDate": "2024-01-30",
+    "eligibilities": [
+      {
+        "type": "Nonprofits",
+        "states": []
+      }
+    ],
+    "focusAreas": ["Health", "Rural Development"],
+    "url": "https://www.grants.gov/web/grants/view-opportunity.html?oppId=13579"
+  },
+  {
+    "id": "grants.gov-97531",
+    "title": "EPA Environmental Education Grants",
+    "agency": "Environmental Protection Agency",
+    "opportunityNumber": "EPA-EE-2024",
+    "opportunityCategory": "Discretionary",
+    "summary": "Provides financial support for projects that design, demonstrate, and/or disseminate environmental education practices, methods, or techniques.",
+    "fundingInstrument": "Grant",
+    "estimatedFunding": 3600000,
+    "awardFloor": 50000,
+    "awardCeiling": 100000,
+    "expectedNumberOfAwards": 36,
+    "closeDate": "2024-11-01",
+    "postedDate": "2024-03-01",
+    "eligibilities": [
+      {
+        "type": "Nonprofits",
+        "states": []
+      }
+    ],
+    "focusAreas": ["Environment", "Education"],
+    "url": "https://www.grants.gov/web/grants/view-opportunity.html?oppId=97531"
+  }
+]
