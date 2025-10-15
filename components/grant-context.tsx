@@ -11,11 +11,58 @@ import {
   useState
 } from "react";
 
-import { deleteOrgGrant, fetchOrgGrants, upsertOrgGrant } from "@/lib/supabase/org-grants";
-import {
-  fetchOrgPreferences,
-  upsertOrgPreferences
-} from "@/lib/supabase/org-preferences";
+async function fetchOrgGrants(): Promise<SavedGrant[]> {
+  const response = await fetch("/api/org-grants", { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch org grants: ${response.statusText}`);
+  }
+  const data = (await response.json()) as { grants?: SavedGrant[] };
+  return data.grants ?? [];
+}
+
+async function upsertOrgGrant(grant: SavedGrant) {
+  const response = await fetch("/api/org-grants", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ grant })
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to persist org grant ${grant.id}: ${response.statusText}`);
+  }
+}
+
+async function deleteOrgGrant(id: string) {
+  const response = await fetch(`/api/org-grants/${id}`, {
+    method: "DELETE"
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to delete org grant ${id}: ${response.statusText}`);
+  }
+}
+
+async function fetchOrgPreferences(): Promise<Partial<OrgPreferences> | null> {
+  const response = await fetch("/api/org-preferences", { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch org preferences: ${response.statusText}`);
+  }
+  const data = (await response.json()) as { preferences?: Partial<OrgPreferences> | null };
+  return data.preferences ?? null;
+}
+
+async function upsertOrgPreferences(preferences: OrgPreferences) {
+  const response = await fetch("/api/org-preferences", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ preferences })
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to persist org preferences: ${response.statusText}`);
+  }
+}
 
 import type { GrantOpportunity } from "@/lib/grants";
 import {
