@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+
+import { GrantProvider } from "@/components/grant-context";
 import "./globals.css";
+import { fetchGrantOpportunities } from "@/lib/grants";
 
 export const metadata: Metadata = {
   title: "Grant Application Tracker",
@@ -32,15 +35,17 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialGrants = await fetchGrantOpportunities();
+
   return (
     <html lang="en" className="scroll-smooth">
       <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
-        {children}
+        <GrantProvider initialGrants={initialGrants}>{children}</GrantProvider>
       </body>
     </html>
   );

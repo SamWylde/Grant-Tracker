@@ -1,6 +1,9 @@
 import { CalendarDaysIcon, ClockIcon, InboxArrowDownIcon, UsersIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
+import { GrantDiscovery } from "@/components/grant-discovery";
+import { OrgSettingsForm } from "@/components/org-settings-form";
+import { PipelineBoard } from "@/components/pipeline-board";
 import { WaitlistForm } from "@/components/waitlist-form";
 
 const features = [
@@ -68,6 +71,9 @@ export default function HomePage() {
             </Link>
             <Link href="#steps" className="transition hover:text-white">
               How it works
+            </Link>
+            <Link href="#workspace" className="transition hover:text-white">
+              Product preview
             </Link>
             <Link href="#faq" className="transition hover:text-white">
               FAQ
@@ -221,6 +227,22 @@ export default function HomePage() {
                 </li>
               ))}
             </ol>
+          </div>
+        </section>
+
+        <section id="workspace" className="border-y border-white/5 bg-slate-950/60 py-20">
+          <div className="container space-y-10">
+            <div className="mx-auto max-w-4xl text-center">
+              <h2 className="text-3xl font-bold text-white">See the live grant workspace</h2>
+              <p className="mt-4 text-lg text-slate-300">
+                Configure org defaults, discover active opportunities, and move grants through the save & track workflow in real time.
+              </p>
+            </div>
+            <div className="grid gap-6">
+              <OrgSettingsForm />
+              <GrantDiscovery />
+              <PipelineBoard />
+            </div>
           </div>
         </section>
 
