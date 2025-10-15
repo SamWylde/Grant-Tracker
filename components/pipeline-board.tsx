@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { describeOffset, formatReminderDate } from "@/lib/reminders";
+
 import { useGrantContext, type SavedGrant, type Stage } from "./grant-context";
 
 const STAGES: Stage[] = ["Researching", "Drafting", "Submitted", "Awarded", "Declined"];
@@ -14,8 +16,9 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export function PipelineBoard() {
-  const { savedGrants, updateGrantStage } = useGrantContext();
+  const { savedGrants, updateGrantStage, orgPreferences } = useGrantContext();
   const [noteByGrant, setNoteByGrant] = useState<Record<string, string>>({});
+  const timezone = orgPreferences.timezone ?? "UTC";
 
   const grantsByStage = useMemo(() => {
     const grouped: Record<Stage, SavedGrant[]> = {
@@ -77,6 +80,14 @@ export function PipelineBoard() {
                   </p>
                 )}
                 {grants.map((grant) => {
+                  const sortedMilestones = (grant.milestones ?? []).slice().sort((a, b) => {
+                    if (!a.dueDate && !b.dueDate) return 0;
+                    if (!a.dueDate) return 1;
+                    if (!b.dueDate) return -1;
+                    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+                  });
+                  const nextMilestone = sortedMilestones.find((milestone) => milestone.dueDate);
+                  const nextReminder = nextMilestone?.scheduledReminders?.[0];
                   const note = noteByGrant[grant.id] ?? "";
                   return (
                     <article key={grant.id} className="space-y-3 rounded-xl border border-white/10 bg-slate-900/70 p-3">
@@ -101,12 +112,20 @@ export function PipelineBoard() {
                             Owner: {grant.owner}
                           </span>
                         )}
-                        {grant.closeDate && (
+                        {nextMilestone?.dueDate && (
                           <span className="rounded-full border border-white/10 px-2 py-0.5 text-slate-200">
-                            Due {new Date(grant.closeDate).toLocaleDateString()}
+                            {nextMilestone.label} · {new Date(nextMilestone.dueDate).toLocaleDateString()}
                           </span>
                         )}
                       </div>
+                      {nextReminder && (
+                        <div className="rounded-lg border border-white/10 bg-slate-950/60 p-2 text-[11px] text-slate-300">
+                          <p className="font-semibold text-slate-100">Next reminder</p>
+                          <p>
+                            {nextReminder.channel === "email" ? "Email" : "SMS"} {describeOffset(nextReminder.offsetDays)} · {formatReminderDate(nextReminder.sendAt, timezone)}
+                          </p>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 text-xs">
                         <label className="text-slate-300">Move to:</label>
                         <select
