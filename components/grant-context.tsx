@@ -11,6 +11,12 @@ import {
   useState
 } from "react";
 
+import { deleteOrgGrant, fetchOrgGrants, upsertOrgGrant } from "@/lib/supabase/org-grants";
+import {
+  fetchOrgPreferences,
+  upsertOrgPreferences
+} from "@/lib/supabase/org-preferences";
+
 import type { GrantOpportunity } from "@/lib/grants";
 import {
   buildReminderSchedule,
@@ -232,11 +238,6 @@ type State = Record<string, SavedGrant>;
 
 const GrantContext = createContext<GrantContextValue | undefined>(undefined);
 
-const STORAGE_KEYS = {
-  savedGrants: "grant-tracker:saved-grants",
-  orgPreferences: "grant-tracker:org-preferences"
-};
-
 const DEFAULT_REMINDER_OFFSETS = [30, 14, 7, 3, 1, 0];
 
 function generateId(prefix: string) {
@@ -244,6 +245,32 @@ function generateId(prefix: string) {
     return crypto.randomUUID();
   }
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function mergeOrgPreferences(
+  base: OrgPreferences,
+  patch: Partial<OrgPreferences>
+): OrgPreferences {
+  const next: OrgPreferences = {
+    ...base,
+    ...(patch.states !== undefined ? { states: patch.states } : {}),
+    ...(patch.focusAreas !== undefined ? { focusAreas: patch.focusAreas } : {}),
+    ...(patch.timezone !== undefined ? { timezone: patch.timezone } : {}),
+    ...(patch.reminderChannels !== undefined
+      ? { reminderChannels: patch.reminderChannels }
+      : {}),
+    ...(patch.unsubscribeUrl !== undefined ? { unsubscribeUrl: patch.unsubscribeUrl } : {}),
+    ...(patch.smsFromNumber !== undefined ? { smsFromNumber: patch.smsFromNumber } : {})
+  };
+
+  if (patch.calendar) {
+    next.calendar = {
+      ...base.calendar,
+      ...patch.calendar
+    };
+  }
+
+  return next;
 }
 
 function ensureReminderChannels(
@@ -775,7 +802,8 @@ function reducer(state: State, action: Action): State {
 export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
   const [allGrants] = useState(initialGrants);
   const [savedGrants, dispatch] = useReducer(reducer, {});
-  const [orgPreferences, setOrgPreferences] = useState<OrgPreferences>(() => ({
+  const savedGrantsRef = useRef(savedGrants);
+  const [orgPreferences, setOrgPreferencesState] = useState<OrgPreferences>(() => ({
     states: [],
     focusAreas: [],
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone ?? "UTC",
@@ -793,78 +821,130 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
     },
     smsFromNumber: null
   }));
+  const orgPreferencesRef = useRef(orgPreferences);
+  const shouldPersistPreferences = useRef(false);
+  const pendingGrantSync = useRef(new Set<string>());
   const hasHydratedGrants = useRef(false);
 
-  // hydrate saved grants from localStorage
   useEffect(() => {
-    if (hasHydratedGrants.current) return;
-    const stored = window.localStorage.getItem(STORAGE_KEYS.savedGrants);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as Partial<SavedGrant>[];
-        dispatch({
-          type: "initialize",
-          grants: parsed,
-          timezone: orgPreferences.timezone ?? "UTC",
-          reminderDefaults: {
-            channels: orgPreferences.reminderChannels,
-            unsubscribeUrl: orgPreferences.unsubscribeUrl
-          }
-        });
-      } catch (error) {
-        console.error("Failed to parse saved grants", error);
-      }
-    }
-    hasHydratedGrants.current = true;
-  }, [orgPreferences.reminderChannels, orgPreferences.timezone, orgPreferences.unsubscribeUrl]);
+    savedGrantsRef.current = savedGrants;
+    if (!hasHydratedGrants.current) return;
+    if (pendingGrantSync.current.size === 0) return;
+    const ids = Array.from(pendingGrantSync.current);
+    pendingGrantSync.current.clear();
 
-  // hydrate org preferences
-  useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEYS.orgPreferences);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as OrgPreferences;
-        setOrgPreferences((prev) => ({
-          ...prev,
-          ...parsed,
-          calendar: {
-            icsSecret: parsed.calendar?.icsSecret ?? prev.calendar.icsSecret,
-            lastGeneratedAt: parsed.calendar?.lastGeneratedAt ?? prev.calendar.lastGeneratedAt,
-            googleSyncEnabled:
-              parsed.calendar?.googleSyncEnabled ?? prev.calendar.googleSyncEnabled,
-            googleCalendarId:
-              parsed.calendar?.googleCalendarId ?? prev.calendar.googleCalendarId,
-            googleOAuthStatus:
-              parsed.calendar?.googleOAuthStatus ?? prev.calendar.googleOAuthStatus,
-            syncCreate: parsed.calendar?.syncCreate ?? prev.calendar.syncCreate,
-            syncUpdate: parsed.calendar?.syncUpdate ?? prev.calendar.syncUpdate,
-            syncDelete: parsed.calendar?.syncDelete ?? prev.calendar.syncDelete
+    void (async () => {
+      await Promise.all(
+        ids.map(async (id) => {
+          const grant = savedGrants[id];
+          if (!grant) return;
+          try {
+            await upsertOrgGrant(grant);
+          } catch (error) {
+            console.error(`Failed to sync grant ${id}`, error);
           }
-        }));
-      } catch (error) {
-        console.error("Failed to parse org preferences", error);
-      }
+        })
+      );
+    })();
+  }, [savedGrants]);
+
+  useEffect(() => {
+    orgPreferencesRef.current = orgPreferences;
+  }, [orgPreferences]);
+
+  const queueGrantSync = useCallback((id: string) => {
+    pendingGrantSync.current.add(id);
+  }, []);
+
+  const persistPreferences = useCallback(async (prefs: OrgPreferences) => {
+    try {
+      await upsertOrgPreferences(prefs);
+    } catch (error) {
+      console.error("Failed to persist org preferences", error);
     }
   }, []);
 
-  // persist saved grants
-  useEffect(() => {
-    window.localStorage.setItem(
-      STORAGE_KEYS.savedGrants,
-      JSON.stringify(Object.values(savedGrants))
-    );
-  }, [savedGrants]);
+  const applyOrgPreferences = useCallback(
+    (updater: OrgPreferences | ((prev: OrgPreferences) => OrgPreferences)) => {
+      setOrgPreferencesState((prev) => {
+        const next =
+          typeof updater === "function"
+            ? (updater as (prev: OrgPreferences) => OrgPreferences)(prev)
+            : updater;
+        if (shouldPersistPreferences.current) {
+          void persistPreferences(next);
+        }
+        return next;
+      });
+    },
+    [persistPreferences]
+  );
 
-  // persist org preferences
   useEffect(() => {
-    window.localStorage.setItem(
-      STORAGE_KEYS.orgPreferences,
-      JSON.stringify(orgPreferences)
-    );
-  }, [orgPreferences]);
+    let active = true;
+
+    async function hydrate() {
+      try {
+        const [grants, preferencePatch] = await Promise.all([
+          fetchOrgGrants(),
+          fetchOrgPreferences()
+        ]);
+        if (!active) return;
+
+        let resolvedPreferences = orgPreferencesRef.current;
+        if (preferencePatch) {
+          const nextPreferences = mergeOrgPreferences(resolvedPreferences, preferencePatch);
+          resolvedPreferences = nextPreferences;
+          setOrgPreferencesState(nextPreferences);
+        }
+
+        if (grants.length > 0) {
+          dispatch({
+            type: "initialize",
+            grants,
+            timezone: resolvedPreferences.timezone ?? "UTC",
+            reminderDefaults: {
+              channels: resolvedPreferences.reminderChannels,
+              unsubscribeUrl: resolvedPreferences.unsubscribeUrl
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Failed to hydrate workspace data from Supabase", error);
+      } finally {
+        if (!active) return;
+        hasHydratedGrants.current = true;
+        shouldPersistPreferences.current = true;
+        if (pendingGrantSync.current.size > 0) {
+          const ids = Array.from(pendingGrantSync.current);
+          pendingGrantSync.current.clear();
+          void (async () => {
+            await Promise.all(
+              ids.map(async (id) => {
+                const grant = savedGrantsRef.current[id];
+                if (!grant) return;
+                try {
+                  await upsertOrgGrant(grant);
+                } catch (error) {
+                  console.error(`Failed to sync grant ${id}`, error);
+                }
+              })
+            );
+          })();
+        }
+      }
+    }
+
+    void hydrate();
+
+    return () => {
+      active = false;
+    };
+  }, [dispatch]);
 
   // refresh reminder schedules whenever timezone or unsubscribe URL changes
   useEffect(() => {
+    if (!hasHydratedGrants.current) return;
     dispatch({
       type: "refresh-schedules",
       timezone: orgPreferences.timezone ?? "UTC",
@@ -873,34 +953,64 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
         unsubscribeUrl: orgPreferences.unsubscribeUrl
       }
     });
-  }, [orgPreferences.timezone, orgPreferences.unsubscribeUrl, orgPreferences.reminderChannels]);
+    for (const id of Object.keys(savedGrantsRef.current)) {
+      pendingGrantSync.current.add(id);
+    }
+  }, [
+    orgPreferences.timezone,
+    orgPreferences.unsubscribeUrl,
+    orgPreferences.reminderChannels,
+    dispatch
+  ]);
 
   // update calendar refresh timestamp when grants change
   useEffect(() => {
-    setOrgPreferences((prev) => ({
+    if (!hasHydratedGrants.current) return;
+    applyOrgPreferences((prev) => ({
       ...prev,
       calendar: {
         ...prev.calendar,
         lastGeneratedAt: new Date().toISOString()
       }
     }));
-  }, [savedGrants]);
+  }, [savedGrants, applyOrgPreferences]);
 
-  const toggleSaveGrant = useCallback((grant: GrantOpportunity) => {
-    dispatch({
-      type: "toggle-save",
-      grant,
-      timezone: orgPreferences.timezone ?? "UTC",
-      reminderDefaults: {
-        channels: orgPreferences.reminderChannels,
-        unsubscribeUrl: orgPreferences.unsubscribeUrl
+  const toggleSaveGrant = useCallback(
+    (grant: GrantOpportunity) => {
+      const exists = Boolean(savedGrants[grant.id]);
+      dispatch({
+        type: "toggle-save",
+        grant,
+        timezone: orgPreferences.timezone ?? "UTC",
+        reminderDefaults: {
+          channels: orgPreferences.reminderChannels,
+          unsubscribeUrl: orgPreferences.unsubscribeUrl
+        }
+      });
+      if (exists) {
+        void deleteOrgGrant(grant.id).catch((error) => {
+          console.error(`Failed to delete org grant ${grant.id}`, error);
+        });
+      } else {
+        queueGrantSync(grant.id);
       }
-    });
-  }, [orgPreferences.reminderChannels, orgPreferences.timezone, orgPreferences.unsubscribeUrl]);
+    },
+    [
+      savedGrants,
+      orgPreferences.reminderChannels,
+      orgPreferences.timezone,
+      orgPreferences.unsubscribeUrl,
+      queueGrantSync
+    ]
+  );
 
-  const updateGrantStage = useCallback((id: string, stage: Stage, note?: string) => {
-    dispatch({ type: "update-stage", id, stage, note });
-  }, []);
+  const updateGrantStage = useCallback(
+    (id: string, stage: Stage, note?: string) => {
+      dispatch({ type: "update-stage", id, stage, note });
+      queueGrantSync(id);
+    },
+    [queueGrantSync]
+  );
 
   const updateGrantDetails = useCallback(
     (
@@ -908,8 +1018,9 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
       updates: Partial<Pick<SavedGrant, "owner" | "priority" | "notes" | "attachments">>
     ) => {
       dispatch({ type: "update-details", id, updates: updates as Partial<SavedGrant> });
+      queueGrantSync(id);
     },
-    []
+    [queueGrantSync]
   );
 
   const updateMilestone = useCallback(
@@ -920,13 +1031,19 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
         milestoneId,
         updates,
         timezone: orgPreferences.timezone ?? "UTC",
-        reminderDefaults: {
-          channels: orgPreferences.reminderChannels,
-          unsubscribeUrl: orgPreferences.unsubscribeUrl
-        }
+      reminderDefaults: {
+        channels: orgPreferences.reminderChannels,
+        unsubscribeUrl: orgPreferences.unsubscribeUrl
+      }
       });
+      queueGrantSync(id);
     },
-    [orgPreferences.reminderChannels, orgPreferences.timezone, orgPreferences.unsubscribeUrl]
+    [
+      orgPreferences.reminderChannels,
+      orgPreferences.timezone,
+      orgPreferences.unsubscribeUrl,
+      queueGrantSync
+    ]
   );
 
   const addMilestone = useCallback(
@@ -938,38 +1055,49 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
         timezone: orgPreferences.timezone ?? "UTC",
         reminderDefaults: {
           channels: orgPreferences.reminderChannels,
-          unsubscribeUrl: orgPreferences.unsubscribeUrl
-        }
+        unsubscribeUrl: orgPreferences.unsubscribeUrl
+      }
       });
+      queueGrantSync(id);
     },
-    [orgPreferences.reminderChannels, orgPreferences.timezone, orgPreferences.unsubscribeUrl]
+    [
+      orgPreferences.reminderChannels,
+      orgPreferences.timezone,
+      orgPreferences.unsubscribeUrl,
+      queueGrantSync
+    ]
   );
 
   const removeMilestone = useCallback(
     (id: string, milestoneId: string) => {
       dispatch({ type: "remove-milestone", id, milestoneId });
+      queueGrantSync(id);
     },
-    []
+    [queueGrantSync]
   );
 
   const addTask = useCallback(
     (id: string, task: TaskDraft) => {
       dispatch({ type: "add-task", id, task });
+      queueGrantSync(id);
     },
-    []
+    [queueGrantSync]
   );
 
   const updateTask = useCallback((id: string, taskId: string, updates: Partial<Task>) => {
     dispatch({ type: "update-task", id, taskId, updates });
-  }, []);
+    queueGrantSync(id);
+  }, [queueGrantSync]);
 
   const toggleTaskStatus = useCallback((id: string, taskId: string, completed: boolean) => {
     dispatch({ type: "toggle-task", id, taskId, completed });
-  }, []);
+    queueGrantSync(id);
+  }, [queueGrantSync]);
 
   const removeTask = useCallback((id: string, taskId: string) => {
     dispatch({ type: "remove-task", id, taskId });
-  }, []);
+    queueGrantSync(id);
+  }, [queueGrantSync]);
 
   const createManualGrant = useCallback(
     (input: ManualGrantInput) => {
@@ -983,9 +1111,15 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
           unsubscribeUrl: orgPreferences.unsubscribeUrl
         }
       });
+      queueGrantSync(id);
       return id;
     },
-    [orgPreferences.reminderChannels, orgPreferences.timezone, orgPreferences.unsubscribeUrl]
+    [
+      orgPreferences.reminderChannels,
+      orgPreferences.timezone,
+      orgPreferences.unsubscribeUrl,
+      queueGrantSync
+    ]
   );
 
   const bulkImportGrants = useCallback(
@@ -1057,6 +1191,9 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
           timezone,
           reminderDefaults
         });
+        for (const grant of payload) {
+          queueGrantSync(grant.id);
+        }
       }
 
       return {
@@ -1069,8 +1206,16 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
       orgPreferences.reminderChannels,
       orgPreferences.timezone,
       orgPreferences.unsubscribeUrl,
-      savedGrants
+      savedGrants,
+      queueGrantSync
     ]
+  );
+
+  const updatePreferences = useCallback(
+    (prefs: OrgPreferences) => {
+      applyOrgPreferences(prefs);
+    },
+    [applyOrgPreferences]
   );
 
   const value: GrantContextValue = useMemo(
@@ -1078,7 +1223,7 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
       allGrants,
       orgPreferences,
       savedGrants,
-      updatePreferences: setOrgPreferences,
+      updatePreferences,
       toggleSaveGrant,
       updateGrantStage,
       updateGrantDetails,
@@ -1096,6 +1241,7 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
       allGrants,
       orgPreferences,
       savedGrants,
+      updatePreferences,
       toggleSaveGrant,
       updateGrantStage,
       updateGrantDetails,
