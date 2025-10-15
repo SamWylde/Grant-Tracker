@@ -11,7 +11,10 @@ import {
 } from "react";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  getSupabaseBrowserClient,
+  isSupabaseBrowserConfigured
+} from "@/lib/supabase/client";
 
 export type OrgMembershipRole = "admin" | "contributor";
 export type OrgMembershipStatus = "active" | "invited" | "inactive";
@@ -48,7 +51,7 @@ type AuthUser = {
 };
 
 type AuthContextValue = {
-  supabase: SupabaseClient;
+  supabase: SupabaseClient | null;
   session: Session | null;
   user: AuthUser | null;
   isLoading: boolean;
@@ -78,10 +81,13 @@ async function fetchMembershipForUser(supabase: SupabaseClient, userId: string) 
 
   if (error) throw error;
   if (!data) return null;
+  const orgSummary = Array.isArray(data.orgs)
+    ? (data.orgs[0] as OrgSummary | undefined) ?? null
+    : (data.orgs as OrgSummary | null | undefined) ?? null;
   return {
     membershipId: data.id,
     orgId: data.org_id,
-    org: data.orgs,
+    org: orgSummary,
     role: (data.role ?? "contributor") as OrgMembershipRole,
     status: (data.status ?? "invited") as OrgMembershipStatus,
     invitedAt: data.invited_at ?? null,
@@ -112,7 +118,18 @@ async function fetchInvitesForOrg(
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
+  const supabase = useMemo(() => {
+    if (!isSupabaseBrowserConfigured()) {
+      console.warn("Supabase credentials are not configured; auth features are disabled.");
+      return null;
+    }
+    try {
+      return getSupabaseBrowserClient();
+    } catch (error) {
+      console.error("Failed to initialize Supabase client", error);
+      return null;
+    }
+  }, []);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const userRef = useRef<AuthUser | null>(null);
@@ -122,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshMembership = useCallback(async () => {
     const currentUser = userRef.current;
-    if (!currentUser) {
+    if (!currentUser || !supabase) {
       setMembership(null);
       setInvites([]);
       return;
@@ -149,6 +166,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase]);
 
   useEffect(() => {
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
     let isMounted = true;
     supabase.auth
       .getSession()
@@ -210,6 +231,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithPassword = useCallback(
     async (email: string, password: string) => {
+      if (!supabase) {
+        return { error: "Authentication is not available." };
+      }
       try {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
@@ -230,6 +254,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
     setMembership(null);
     setInvites([]);
@@ -237,6 +262,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const inviteMember = useCallback(
     async (email: string, role: OrgMembershipRole) => {
+      if (!supabase) {
+        return { error: "Invitations are unavailable without Supabase." };
+      }
       if (!membership?.orgId) {
         return { error: "You need an active organization before inviting teammates." };
       }
@@ -281,6 +309,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const revokeInvite = useCallback(
     async (inviteId: string) => {
+      if (!supabase) {
+        return { error: "Invitations are unavailable without Supabase." };
+      }
       try {
         const { error } = await supabase.from("org_invites").delete().eq("id", inviteId);
         if (error) {
@@ -302,6 +333,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const acceptInvite = useCallback(
     async (token: string) => {
+      if (!supabase) {
+        return { error: "Invitations are unavailable without Supabase." };
+      }
       try {
         const { error } = await supabase.rpc("accept_org_invite", { invite_token: token });
         if (error) {
