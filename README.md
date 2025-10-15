@@ -42,6 +42,25 @@ Default stack (recommended):
 
 > Alternate: Django + DRF + Celery/Redis + HTMX/Next.js. The product spec is stack-agnostic.
 
+### Frontend scaffold (current repo)
+
+This repository now includes the initial marketing experience built with **Next.js 14**, **TypeScript**, and **Tailwind CSS**.
+The goal is to provide a high-conversion landing page for early-access nonprofits while the full product is under active
+development.
+
+```
+app/
+  layout.tsx          // Global metadata, shell, and theme
+  page.tsx            // Marketing homepage (hero, features, waitlist, FAQ)
+  globals.css         // Tailwind + custom styles
+components/
+  waitlist-form.tsx   // Client component simulating waitlist capture
+public/
+  og-cover.svg        // Open Graph / social sharing artwork
+```
+
+Run `pnpm dev` to start the marketing site at http://localhost:3000.
+
 ---
 
 ## 🗃️ Data Model (ER overview)
