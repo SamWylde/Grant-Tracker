@@ -78,6 +78,12 @@ export default function HomePage() {
             <Link href="#faq" className="transition hover:text-white">
               FAQ
             </Link>
+            <Link href="/my-tasks" className="transition hover:text-white">
+              My tasks
+            </Link>
+            <Link href="/login" className="transition hover:text-white">
+              Sign in
+            </Link>
           </nav>
           <div className="flex items-center gap-3">
             <Link

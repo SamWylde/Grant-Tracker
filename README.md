@@ -12,8 +12,8 @@
 * **Save & Track**: Pipeline stages (Researching → Drafting → Submitted → Awarded/Declined), notes, attachments (links).
 * **Deadlines**: LOI / Application / Report milestones with **T-30/14/7/3/1 + day-of** reminders.
 * **Calendar**: Org-level **ICS feed** (secret URL) + **Google Calendar push** (Pro).
-* **Collaboration**: Unlimited users per org, assignees, task checklists.
-* **Import**: CSV importer from “existing spreadsheet”.
+* **Collaboration**: Supabase auth with org roles (admin/contributor), invites, assignees, and task checklists.
+* **Import**: CSV importer from “existing spreadsheet” plus manual opportunity entry outside Grants.gov.
 
 > Post-MVP ideas: recurring report RRULEs, templates (LOI/budget), private/foundation discovery partners, funder fit scoring, org analytics.
 
@@ -60,6 +60,18 @@ public/
 ```
 
 Run `pnpm dev` to start the marketing site at http://localhost:3000.
+
+### Environment variables
+
+Create a `.env.local` file with your Supabase credentials:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=... # optional, used for server actions
+```
+
+For convenience during local testing you can use the project shared in this exercise (URL + anon key) or provision your own Supabase project with the tables `org_memberships` and `org_invites`.
 
 ---
 

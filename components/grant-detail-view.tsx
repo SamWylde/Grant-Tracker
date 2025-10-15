@@ -12,6 +12,7 @@ import {
   type Priority,
   type Stage
 } from "./grant-context";
+import { TaskChecklist } from "./task-checklist";
 
 const PRIORITY_OPTIONS: Priority[] = ["High", "Medium", "Low"];
 const STAGE_OPTIONS: Stage[] = ["Researching", "Drafting", "Submitted", "Awarded", "Declined"];
@@ -188,6 +189,7 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
               </div>
             </form>
           </div>
+          <TaskChecklist grantId={grantId} />
           <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-5">
             <h2 className="text-lg font-semibold text-white">Attachments & links</h2>
             <p className="mt-2 text-sm text-slate-300">

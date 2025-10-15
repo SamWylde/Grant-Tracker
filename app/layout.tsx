@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AuthProvider } from "@/components/auth-context";
 import { GrantProvider } from "@/components/grant-context";
 import "./globals.css";
 import { fetchGrantOpportunities } from "@/lib/grants";
@@ -45,7 +46,9 @@ export default async function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
-        <GrantProvider initialGrants={initialGrants}>{children}</GrantProvider>
+        <AuthProvider>
+          <GrantProvider initialGrants={initialGrants}>{children}</GrantProvider>
+        </AuthProvider>
       </body>
     </html>
   );
