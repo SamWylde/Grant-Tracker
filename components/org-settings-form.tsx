@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getUniqueFocusAreas, getUniqueStates } from "@/lib/grants";
 import { describeOffset } from "@/lib/reminders";
@@ -35,10 +35,27 @@ const TIMEZONE_OPTIONS = [
   "UTC"
 ];
 
+function generateSecureSecret() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+  throw new Error("Crypto API not available for secure token generation");
+}
+
 export function OrgSettingsForm() {
-  const { allGrants, orgPreferences, savedGrants, updatePreferences } = useGrantContext();
+  const {
+    allGrants,
+    orgPreferences,
+    savedGrants,
+    updatePreferences,
+    syncStatus,
+    clearSyncError,
+    hydrationState,
+    hydrationError
+  } = useGrantContext();
   const [icsDownloading, setIcsDownloading] = useState(false);
   const [icsCopied, setIcsCopied] = useState(false);
+  const copyResetTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const states = useMemo(() => getUniqueStates(allGrants), [allGrants]);
   const focusAreas = useMemo(() => {
@@ -57,6 +74,15 @@ export function OrgSettingsForm() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeout.current) {
+        clearTimeout(copyResetTimeout.current);
+        copyResetTimeout.current = null;
+      }
+    };
   }, []);
 
   const icsFeedUrl = useMemo(() => {
@@ -84,6 +110,26 @@ export function OrgSettingsForm() {
           Choose the geographies and focus areas you care about most. We use these
           preferences to surface the most relevant grants by default whenever you revisit the app.
         </p>
+        {hydrationState === "error" && hydrationError && (
+          <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-xs text-amber-100">
+            <p className="font-semibold">{hydrationError}</p>
+            <p className="mt-1">Refresh the page or try again later once your connection is stable.</p>
+          </div>
+        )}
+        {syncStatus.error && (
+          <div className="rounded-xl border border-rose-400/40 bg-rose-500/10 p-3 text-xs text-rose-100">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-semibold">{syncStatus.error}</p>
+              <button
+                type="button"
+                onClick={clearSyncError}
+                className="rounded-md border border-rose-300/40 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-rose-100 transition hover:border-rose-200/60 hover:text-white"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
       </header>
       <div className="grid gap-6 md:grid-cols-2">
         <div>
@@ -252,7 +298,13 @@ export function OrgSettingsForm() {
                         try {
                           await navigator.clipboard.writeText(icsFeedUrl);
                           setIcsCopied(true);
-                          setTimeout(() => setIcsCopied(false), 2000);
+                          if (copyResetTimeout.current) {
+                            clearTimeout(copyResetTimeout.current);
+                          }
+                          copyResetTimeout.current = setTimeout(() => {
+                            setIcsCopied(false);
+                            copyResetTimeout.current = null;
+                          }, 2000);
                         } catch (error) {
                           console.error("Failed to copy ICS URL", error);
                         }
@@ -268,8 +320,7 @@ export function OrgSettingsForm() {
                           ...orgPreferences,
                           calendar: {
                             ...orgPreferences.calendar,
-                            icsSecret:
-                              globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 10)
+                            icsSecret: generateSecureSecret()
                           }
                         });
                       }}
@@ -283,14 +334,21 @@ export function OrgSettingsForm() {
                         if (icsDownloading) return;
                         setIcsDownloading(true);
                         try {
-                          const grants = Object.values(savedGrants).map((grant) => ({
-                            id: grant.id,
-                            title: grant.title,
-                            milestones: (grant.milestones ?? []).map((milestone) => ({
-                              label: milestone.label,
-                              dueDate: milestone.dueDate
-                            }))
-                          }));
+                          const grants = Object.values(savedGrants).map((grant) => {
+                            if (!Array.isArray(grant.milestones)) {
+                              throw new Error(
+                                `Grant ${grant.id} is missing milestones. Unable to build ICS feed.`
+                              );
+                            }
+                            return {
+                              id: grant.id,
+                              title: grant.title,
+                              milestones: grant.milestones.map((milestone) => ({
+                                label: milestone.label,
+                                dueDate: milestone.dueDate
+                              }))
+                            };
+                          });
                           const ics = generateIcsFeed({
                             grants,
                             timezone: orgPreferences.timezone,
