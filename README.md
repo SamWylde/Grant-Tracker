@@ -63,7 +63,7 @@ Run `pnpm dev` to start the marketing site at http://localhost:3000.
 
 ### Environment variables
 
-Create a `.env.local` file with your Supabase credentials:
+Copy `.env.example` to `.env.local` and fill in your Supabase credentials:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
@@ -181,7 +181,7 @@ pnpm install
 
 ### 3) Environment
 
-Create `.env.local` (frontend) and `.env` (server functions) from this template:
+Create `.env.local` (frontend) and `.env` (server functions) using `.env.example` as the base template:
 
 ```bash
 # App
