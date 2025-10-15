@@ -73,6 +73,8 @@ type TaskDraft = Omit<
   "id" | "status" | "createdAt" | "updatedAt" | "completedAt"
 > & { id?: string; status?: TaskStatus };
 
+type HydrationState = "idle" | "hydrating" | "ready" | "error";
+
 type ManualGrantInput = {
   id?: string;
   title: string;
@@ -160,12 +162,26 @@ type GrantContextValue = {
     imported: string[];
     skipped: string[];
   };
+  syncStatus: {
+    isSyncing: boolean;
+    error: string | null;
+  };
+  clearSyncError: () => void;
+  hydrationState: HydrationState;
+  hydrationError: string | null;
 };
 
 type GrantProviderProps = {
   initialGrants: GrantOpportunity[];
   children: React.ReactNode;
 };
+
+function buildErrorMessage(action: string, error: unknown) {
+  if (error instanceof Error && error.message) {
+    return `${action}: ${error.message}`;
+  }
+  return `${action}: ${String(error)}`;
+}
 
 type ToggleSaveAction = {
   type: "toggle-save";
@@ -825,6 +841,80 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
   const shouldPersistPreferences = useRef(false);
   const pendingGrantSync = useRef(new Set<string>());
   const hasHydratedGrants = useRef(false);
+  const [hydrationState, setHydrationState] = useState<HydrationState>("idle");
+  const [hydrationError, setHydrationError] = useState<string | null>(null);
+  const [syncStatusState, setSyncStatusState] = useState<{ pending: number; error: string | null }>(
+    {
+      pending: 0,
+      error: null
+    }
+  );
+
+  const startSync = useCallback(() => {
+    setSyncStatusState((prev) => ({ pending: prev.pending + 1, error: prev.error }));
+  }, []);
+
+  const finishSync = useCallback((error?: string | null) => {
+    setSyncStatusState((prev) => {
+      const nextPending = Math.max(0, prev.pending - 1);
+      return {
+        pending: nextPending,
+        error: error ?? (nextPending === 0 ? null : prev.error)
+      };
+    });
+  }, []);
+
+  const clearSyncError = useCallback(() => {
+    setSyncStatusState((prev) => ({ ...prev, error: null }));
+  }, []);
+
+  const syncStatus = useMemo(
+    () => ({
+      isSyncing: syncStatusState.pending > 0,
+      error: syncStatusState.error
+    }),
+    [syncStatusState]
+  );
+
+  const syncPendingGrants = useCallback(
+    async (ids: string[]) => {
+      if (ids.length === 0) return;
+      startSync();
+      const errors: string[] = [];
+      try {
+        await Promise.all(
+          ids.map(async (id) => {
+            const grant = savedGrantsRef.current[id];
+            if (!grant) return;
+            try {
+              await upsertOrgGrant(grant);
+            } catch (error) {
+              const message = buildErrorMessage(
+                `Failed to sync grant ${grant.title || id}`,
+                error
+              );
+              console.error(message, error);
+              errors.push(message);
+            }
+          })
+        );
+        const summary =
+          errors.length === 0
+            ? null
+            : errors.length === 1
+            ? errors[0]
+            : `${errors.length} grants failed to sync. ${errors
+                .slice(0, 3)
+                .join(" ")}`;
+        finishSync(summary);
+      } catch (error) {
+        const message = buildErrorMessage("Unexpected error while syncing grants", error);
+        console.error(message, error);
+        finishSync(message);
+      }
+    },
+    [finishSync, startSync]
+  );
 
   useEffect(() => {
     savedGrantsRef.current = savedGrants;
@@ -832,21 +922,8 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
     if (pendingGrantSync.current.size === 0) return;
     const ids = Array.from(pendingGrantSync.current);
     pendingGrantSync.current.clear();
-
-    void (async () => {
-      await Promise.all(
-        ids.map(async (id) => {
-          const grant = savedGrants[id];
-          if (!grant) return;
-          try {
-            await upsertOrgGrant(grant);
-          } catch (error) {
-            console.error(`Failed to sync grant ${id}`, error);
-          }
-        })
-      );
-    })();
-  }, [savedGrants]);
+    void syncPendingGrants(ids);
+  }, [savedGrants, syncPendingGrants]);
 
   useEffect(() => {
     orgPreferencesRef.current = orgPreferences;
@@ -856,13 +933,20 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
     pendingGrantSync.current.add(id);
   }, []);
 
-  const persistPreferences = useCallback(async (prefs: OrgPreferences) => {
-    try {
-      await upsertOrgPreferences(prefs);
-    } catch (error) {
-      console.error("Failed to persist org preferences", error);
-    }
-  }, []);
+  const persistPreferences = useCallback(
+    async (prefs: OrgPreferences) => {
+      startSync();
+      try {
+        await upsertOrgPreferences(prefs);
+        finishSync(null);
+      } catch (error) {
+        const message = buildErrorMessage("Failed to persist org preferences", error);
+        console.error(message, error);
+        finishSync(message);
+      }
+    },
+    [finishSync, startSync]
+  );
 
   const applyOrgPreferences = useCallback(
     (updater: OrgPreferences | ((prev: OrgPreferences) => OrgPreferences)) => {
@@ -881,15 +965,18 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
   );
 
   useEffect(() => {
+    const controller = new AbortController();
     let active = true;
 
     async function hydrate() {
+      setHydrationState("hydrating");
+      setHydrationError(null);
       try {
         const [grants, preferencePatch] = await Promise.all([
-          fetchOrgGrants(),
-          fetchOrgPreferences()
+          fetchOrgGrants(undefined, { signal: controller.signal }),
+          fetchOrgPreferences(undefined, { signal: controller.signal })
         ]);
-        if (!active) return;
+        if (!active || controller.signal.aborted) return;
 
         let resolvedPreferences = orgPreferencesRef.current;
         if (preferencePatch) {
@@ -909,29 +996,24 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
             }
           });
         }
-      } catch (error) {
-        console.error("Failed to hydrate workspace data from Supabase", error);
-      } finally {
-        if (!active) return;
+
         hasHydratedGrants.current = true;
         shouldPersistPreferences.current = true;
+        setHydrationState("ready");
         if (pendingGrantSync.current.size > 0) {
           const ids = Array.from(pendingGrantSync.current);
           pendingGrantSync.current.clear();
-          void (async () => {
-            await Promise.all(
-              ids.map(async (id) => {
-                const grant = savedGrantsRef.current[id];
-                if (!grant) return;
-                try {
-                  await upsertOrgGrant(grant);
-                } catch (error) {
-                  console.error(`Failed to sync grant ${id}`, error);
-                }
-              })
-            );
-          })();
+          void syncPendingGrants(ids);
         }
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        const message = buildErrorMessage(
+          "Failed to hydrate workspace data from Supabase",
+          error
+        );
+        console.error(message, error);
+        setHydrationError(message);
+        setHydrationState("error");
       }
     }
 
@@ -939,8 +1021,9 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
 
     return () => {
       active = false;
+      controller.abort();
     };
-  }, [dispatch]);
+  }, [dispatch, syncPendingGrants]);
 
   // refresh reminder schedules whenever timezone or unsubscribe URL changes
   useEffect(() => {
@@ -988,9 +1071,20 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
         }
       });
       if (exists) {
-        void deleteOrgGrant(grant.id).catch((error) => {
-          console.error(`Failed to delete org grant ${grant.id}`, error);
-        });
+        startSync();
+        void (async () => {
+          try {
+            await deleteOrgGrant(grant.id);
+            finishSync(null);
+          } catch (error) {
+            const message = buildErrorMessage(
+              `Failed to delete org grant ${grant.id}`,
+              error
+            );
+            console.error(message, error);
+            finishSync(message);
+          }
+        })();
       } else {
         queueGrantSync(grant.id);
       }
@@ -1000,7 +1094,9 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
       orgPreferences.reminderChannels,
       orgPreferences.timezone,
       orgPreferences.unsubscribeUrl,
-      queueGrantSync
+      queueGrantSync,
+      finishSync,
+      startSync
     ]
   );
 
@@ -1235,7 +1331,11 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
       toggleTaskStatus,
       removeTask,
       createManualGrant,
-      bulkImportGrants
+      bulkImportGrants,
+      syncStatus,
+      clearSyncError,
+      hydrationState,
+      hydrationError
     }),
     [
       allGrants,
@@ -1253,7 +1353,11 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
       toggleTaskStatus,
       removeTask,
       createManualGrant,
-      bulkImportGrants
+      bulkImportGrants,
+      syncStatus,
+      clearSyncError,
+      hydrationState,
+      hydrationError
     ]
   );
 

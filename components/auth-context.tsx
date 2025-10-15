@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -107,12 +115,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const userRef = useRef<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [membership, setMembership] = useState<OrgMembership | null>(null);
   const [invites, setInvites] = useState<OrgInvite[]>([]);
 
   const refreshMembership = useCallback(async () => {
-    const currentUser = user;
+    const currentUser = userRef.current;
     if (!currentUser) {
       setMembership(null);
       setInvites([]);
@@ -128,9 +137,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setInvites([]);
       }
     } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unknown error while loading membership details.";
       console.error("Failed to load membership", error);
+      setMembership((prev) => prev);
+      setInvites((prev) => prev);
+      console.error(`Unable to refresh membership: ${message}`);
     }
-  }, [supabase, user]);
+  }, [supabase]);
 
   useEffect(() => {
     let isMounted = true;
@@ -144,15 +160,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setSession(data.session);
         const nextUser = data.session?.user;
-        setUser(
-          nextUser
-            ? {
-                id: nextUser.id,
-                email: nextUser.email ?? undefined,
-                fullName: nextUser.user_metadata?.full_name ?? nextUser.user_metadata?.name ?? null
-              }
-            : null
-        );
+        const normalizedUser = nextUser
+          ? {
+              id: nextUser.id,
+              email: nextUser.email ?? undefined,
+              fullName: nextUser.user_metadata?.full_name ?? nextUser.user_metadata?.name ?? null
+            }
+          : null;
+        userRef.current = normalizedUser;
+        setUser(normalizedUser);
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
@@ -161,15 +177,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: listener } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       const nextUser = nextSession?.user ?? null;
-      setUser(
-        nextUser
-          ? {
-              id: nextUser.id,
-              email: nextUser.email ?? undefined,
-              fullName: nextUser.user_metadata?.full_name ?? nextUser.user_metadata?.name ?? null
-            }
-          : null
-      );
+      const normalizedUser = nextUser
+        ? {
+            id: nextUser.id,
+            email: nextUser.email ?? undefined,
+            fullName: nextUser.user_metadata?.full_name ?? nextUser.user_metadata?.name ?? null
+          }
+        : null;
+      userRef.current = normalizedUser;
+      setUser(normalizedUser);
       if (event === "SIGNED_OUT") {
         setMembership(null);
         setInvites([]);
@@ -183,8 +199,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase]);
 
   useEffect(() => {
-    if (!user) return;
-    refreshMembership();
+    userRef.current = user;
+    if (!user) {
+      setMembership(null);
+      setInvites([]);
+      return;
+    }
+    void refreshMembership();
   }, [user, refreshMembership]);
 
   const signInWithPassword = useCallback(
@@ -198,7 +219,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return {};
       } catch (error) {
         console.error("Failed to sign in", error);
-        return { error: "Unable to sign in. Please try again." };
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unexpected error while signing in. Please verify your credentials and try again.";
+        return { error: message };
       }
     },
     [refreshMembership, supabase]
@@ -244,7 +269,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return {};
       } catch (error) {
         console.error("Failed to invite member", error);
-        return { error: "Unable to send invite. Please try again." };
+        const message =
+          error instanceof Error
+            ? `Unable to send invite: ${error.message}`
+            : "Unable to send invite due to an unexpected error.";
+        return { error: `${message} Please verify the email address and try again.` };
       }
     },
     [membership?.orgId, supabase, user?.id]
@@ -261,7 +290,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return {};
       } catch (error) {
         console.error("Failed to revoke invite", error);
-        return { error: "Unable to revoke invite." };
+        const message =
+          error instanceof Error
+            ? `Unable to revoke invite: ${error.message}`
+            : "Unable to revoke invite due to an unexpected error.";
+        return { error: `${message} Please refresh and try again.` };
       }
     },
     [supabase]
@@ -274,8 +307,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) {
           return { error: error.message };
         }
-        await refreshMembership();
-        return {};
       } catch (error) {
         console.warn("accept_org_invite RPC missing, falling back to status update", error);
         try {
@@ -286,12 +317,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (fallbackError) {
             return { error: fallbackError.message };
           }
-          await refreshMembership();
-          return {};
         } catch (nestedError) {
           console.error("Failed to accept invite", nestedError);
-          return { error: "Unable to accept invite." };
+          const message =
+            nestedError instanceof Error
+              ? `Unable to accept invite: ${nestedError.message}`
+              : "Unable to accept invite due to an unexpected error.";
+          return { error: `${message} Please confirm the link has not expired and try again.` };
         }
+      }
+
+      try {
+        await refreshMembership();
+        return {};
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unable to refresh membership details after accepting invite.";
+        console.error("Failed to refresh membership after accepting invite", error);
+        return { error: `${message} Please refresh the page to confirm your access.` };
       }
     },
     [refreshMembership, supabase]

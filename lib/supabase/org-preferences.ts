@@ -18,11 +18,16 @@ type OrgPreferencesRow = {
 const DEFAULT_ORG_ID =
   process.env.SUPABASE_ORG_ID ?? process.env.NEXT_PUBLIC_SUPABASE_ORG_ID ?? "demo-org";
 
+type SupabaseOptions = {
+  signal?: AbortSignal;
+};
+
 export async function fetchOrgPreferences(
-  orgId: string = DEFAULT_ORG_ID
+  orgId: string = DEFAULT_ORG_ID,
+  options: SupabaseOptions = {}
 ): Promise<Partial<OrgPreferences> | null> {
   const client = getSupabaseServerClient();
-  const { data, error } = await client
+  let query = client
     .from("org_preferences")
     .select(
       [
@@ -39,6 +44,12 @@ export async function fetchOrgPreferences(
     )
     .eq("org_id", orgId)
     .maybeSingle();
+
+  if (options.signal) {
+    query = query.abortSignal(options.signal);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Failed to load org preferences: ${error.message}`);
