@@ -4,20 +4,48 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { useGrantContext, type Priority, type Stage } from "./grant-context";
+import { describeOffset, formatReminderDate } from "@/lib/reminders";
+
+import {
+  useGrantContext,
+  type Milestone,
+  type Priority,
+  type Stage
+} from "./grant-context";
 
 const PRIORITY_OPTIONS: Priority[] = ["High", "Medium", "Low"];
 const STAGE_OPTIONS: Stage[] = ["Researching", "Drafting", "Submitted", "Awarded", "Declined"];
 
 export function GrantDetailView({ grantId }: { grantId: string }) {
   const router = useRouter();
-  const { savedGrants, updateGrantDetails, updateGrantStage } = useGrantContext();
+  const {
+    savedGrants,
+    updateGrantDetails,
+    updateGrantStage,
+    updateMilestone,
+    addMilestone,
+    removeMilestone,
+    orgPreferences
+  } = useGrantContext();
 
   const grant = savedGrants[grantId];
 
   const [newAttachment, setNewAttachment] = useState("");
+  const [newMilestoneLabel, setNewMilestoneLabel] = useState("");
 
   const history = useMemo(() => grant?.history.slice().reverse() ?? [], [grant?.history]);
+  const milestones = useMemo(() => {
+    const items = grant?.milestones ?? [];
+    return items
+      .slice()
+      .sort((a, b) => {
+        if (!a.dueDate && !b.dueDate) return a.label.localeCompare(b.label);
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      });
+  }, [grant?.milestones]);
+  const timezone = orgPreferences.timezone ?? "UTC";
 
   if (!grant) {
     return (
@@ -108,6 +136,57 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
                 placeholder="Capture strategy, required attachments, or reminders"
               />
             </Field>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-5">
+            <header className="flex flex-col gap-2">
+              <h2 className="text-lg font-semibold text-white">Deadline management & reminders</h2>
+              <p className="text-sm text-slate-300">
+                Track LOI, application, report, and custom milestones. Set due dates once and
+                Grant Tracker will schedule reminders at T-30/14/7/3/1 and day-of across email and SMS without duplicating alerts.
+              </p>
+            </header>
+            <div className="mt-5 space-y-4">
+              {milestones.map((milestone) => (
+                <MilestoneEditor
+                  key={milestone.id}
+                  milestone={milestone}
+                  timezone={timezone}
+                  onUpdate={(updates) => updateMilestone(grantId, milestone.id, updates)}
+                  onRemove={() => removeMilestone(grantId, milestone.id)}
+                  isCustom={milestone.type === "Custom"}
+                  defaultChannels={orgPreferences.reminderChannels}
+                  grantTitle={grant.title}
+                />
+              ))}
+            </div>
+            <form
+              className="mt-5 flex flex-col gap-3 rounded-2xl border border-dashed border-white/10 bg-slate-950/50 p-4 text-sm"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const trimmed = newMilestoneLabel.trim();
+                if (!trimmed) return;
+                addMilestone(grantId, { label: trimmed, type: "Custom" });
+                setNewMilestoneLabel("");
+              }}
+            >
+              <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Add custom milestone
+              </label>
+              <div className="flex flex-col gap-3 md:flex-row">
+                <input
+                  value={newMilestoneLabel}
+                  onChange={(event) => setNewMilestoneLabel(event.target.value)}
+                  placeholder="Site visit, board review, etc."
+                  className="flex-1 rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-white placeholder:text-slate-500"
+                />
+                <button
+                  type="submit"
+                  className="rounded-lg border border-emerald-400/60 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300 hover:text-white"
+                >
+                  Add milestone
+                </button>
+              </div>
+            </form>
           </div>
           <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-5">
             <h2 className="text-lg font-semibold text-white">Attachments & links</h2>
@@ -221,6 +300,160 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
         </aside>
       </section>
     </div>
+  );
+}
+
+function MilestoneEditor({
+  milestone,
+  timezone,
+  onUpdate,
+  onRemove,
+  isCustom,
+  defaultChannels,
+  grantTitle
+}: {
+  milestone: Milestone;
+  timezone: string;
+  onUpdate: (updates: Partial<Milestone>) => void;
+  onRemove: () => void;
+  isCustom: boolean;
+  defaultChannels: Milestone["reminderChannels"];
+  grantTitle: string;
+}) {
+  const channelOptions: Milestone["reminderChannels"] = ["email", "sms"];
+  return (
+    <article className="space-y-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-sm text-slate-200">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          {isCustom ? (
+            <input
+              value={milestone.label}
+              onChange={(event) => onUpdate({ label: event.target.value })}
+              className="rounded-lg border border-white/10 bg-transparent px-2 py-1 text-base font-semibold text-white"
+            />
+          ) : (
+            <p className="text-base font-semibold text-white">{milestone.label}</p>
+          )}
+          <p className="text-xs uppercase tracking-wide text-slate-400">
+            {milestone.type === "Custom" ? "Custom milestone" : milestone.type}
+          </p>
+        </div>
+        {isCustom && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-xs font-semibold text-rose-200 underline-offset-2 hover:underline"
+          >
+            Remove
+          </button>
+        )}
+      </header>
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="flex flex-col gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Due date
+          </span>
+          <input
+            type="date"
+            value={milestone.dueDate ?? ""}
+            onChange={(event) => onUpdate({ dueDate: event.target.value || null })}
+            className="rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-white"
+          />
+        </label>
+        <label className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Reminders
+            </span>
+            <p className="text-xs text-slate-400">Email & SMS at T-30/14/7/3/1/day-of.</p>
+          </div>
+          <input
+            type="checkbox"
+            checked={milestone.remindersEnabled}
+            onChange={(event) =>
+              onUpdate({
+                remindersEnabled: event.target.checked,
+                reminderChannels:
+                  milestone.reminderChannels.length > 0
+                    ? milestone.reminderChannels
+                    : defaultChannels.length > 0
+                    ? defaultChannels
+                    : (["email"] as Milestone["reminderChannels"])
+              })
+            }
+            className="h-4 w-4"
+          />
+        </label>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {channelOptions.map((channel) => {
+          const active = milestone.reminderChannels.includes(channel);
+          return (
+            <button
+              key={channel}
+              type="button"
+              onClick={() => {
+                if (!milestone.remindersEnabled) {
+                  onUpdate({ remindersEnabled: true });
+                }
+                const next = active
+                  ? milestone.reminderChannels.filter((item) => item !== channel)
+                  : [...milestone.reminderChannels, channel];
+                onUpdate({
+                  reminderChannels: next.length > 0 ? next : [channel]
+                });
+              }}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                active
+                  ? "border-emerald-400 bg-emerald-500/10 text-emerald-200"
+                  : "border-white/10 bg-white/5 text-slate-200 hover:border-emerald-400 hover:text-white"
+              }`}
+            >
+              {channel.toUpperCase()}
+            </button>
+          );
+        })}
+      </div>
+      <div className="space-y-2 text-xs text-slate-300">
+        <p className="font-semibold text-slate-200">Scheduled notifications</p>
+        {milestone.remindersEnabled && milestone.scheduledReminders.length > 0 ? (
+          <ul className="space-y-2">
+            {milestone.scheduledReminders.map((reminder) => (
+              <li
+                key={`${milestone.id}-${reminder.channel}-${reminder.offsetDays}`}
+                className="rounded-lg border border-white/10 bg-slate-950/60 p-3"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                  <span className="font-semibold text-white">
+                    {reminder.channel === "email" ? "Email" : "SMS"} · {describeOffset(reminder.offsetDays)}
+                  </span>
+                  <span className="text-slate-400">
+                    {formatReminderDate(reminder.sendAt, timezone)} ({timezone})
+                  </span>
+                </div>
+                {reminder.subject && (
+                  <p className="mt-1 text-[11px] text-slate-300">
+                    <span className="font-semibold text-slate-200">Subject:</span> {reminder.subject}
+                  </p>
+                )}
+                <p className="mt-1 text-[11px] text-slate-400">
+                  {reminder.preview}…
+                </p>
+                <p className="mt-2 text-[10px] uppercase tracking-wide text-slate-500">
+                  Template respects {grantTitle} timezone ({timezone}) and unsubscribe flow.
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-lg border border-dashed border-white/10 p-3 text-slate-500">
+            {milestone.dueDate
+              ? "Enable reminders to automatically queue notifications."
+              : "Add a due date to generate reminders."}
+          </p>
+        )}
+      </div>
+    </article>
   );
 }
 
