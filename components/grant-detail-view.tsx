@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -224,14 +223,14 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
             <ul className="mt-4 space-y-2 text-sm text-slate-200">
               {(grant.attachments ?? []).map((attachment) => (
                 <li key={attachment} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 px-3 py-2">
-                  <Link
+                  <a
                     href={attachment}
                     target="_blank"
                     rel="noreferrer"
                     className="truncate text-emerald-200 underline-offset-2 hover:underline"
                   >
                     {attachment}
-                  </Link>
+                  </a>
                   <button
                     type="button"
                     onClick={() => {
@@ -277,14 +276,14 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
                 <dd className="text-white">{grant.focusAreas.join(", ")}</dd>
               </div>
             </dl>
-            <Link
+            <a
               href={grant.url ?? "#"}
               target="_blank"
               rel="noreferrer"
               className="mt-4 inline-flex items-center justify-center rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-slate-200 transition hover:border-white/40 hover:text-white"
             >
               View opportunity on Grants.gov
-            </Link>
+            </a>
           </div>
           <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-5 text-sm text-slate-300">
             <h2 className="text-lg font-semibold text-white">Stage history</h2>

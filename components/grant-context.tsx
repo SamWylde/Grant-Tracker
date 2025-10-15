@@ -292,10 +292,22 @@ function mergeOrgPreferences(
 function ensureReminderChannels(
   channels: ReminderChannel[],
   defaults: ReminderChannel[]
-) {
+): ReminderChannel[] {
   if (channels.length > 0) return channels;
   if (defaults.length > 0) return defaults;
   return ["email"];
+}
+
+function ensureEligibilityStrings(
+  value?: ManualGrantInput["eligibilities"] | GrantOpportunity["eligibilities"]
+): string[] | undefined {
+  if (!value) return undefined;
+  const entries = value as Array<string | { type: string; states: string[] }>;
+  const normalized = entries
+    .map((entry) => (typeof entry === "string" ? entry : entry.type))
+    .map((entry) => entry?.trim())
+    .filter((entry): entry is string => Boolean(entry));
+  return normalized.length > 0 ? normalized : undefined;
 }
 
 function createDefaultMilestones(
@@ -372,19 +384,25 @@ function buildManualGrant(
   const stage = input.stage ?? existing?.stage ?? "Researching";
   const priority = input.priority ?? existing?.priority ?? "Medium";
   const baseOpportunity: GrantOpportunity = {
-    ...(existing ?? {}),
-    ...(input as GrantOpportunity),
     id: input.id,
     title: input.title,
     agency: input.agency,
+    opportunityNumber: input.opportunityNumber ?? existing?.opportunityNumber ?? "",
+    opportunityCategory: existing?.opportunityCategory ?? "",
     summary: input.summary ?? existing?.summary ?? "",
+    fundingInstrument: existing?.fundingInstrument ?? "",
+    estimatedFunding: input.estimatedFunding ?? existing?.estimatedFunding ?? null,
+    awardFloor: input.awardFloor ?? existing?.awardFloor ?? null,
+    awardCeiling: input.awardCeiling ?? existing?.awardCeiling ?? null,
+    expectedNumberOfAwards: existing?.expectedNumberOfAwards ?? null,
     closeDate: input.closeDate ?? existing?.closeDate ?? null,
     postedDate: input.postedDate ?? existing?.postedDate ?? null,
-    url: input.url ?? existing?.url ?? "",
-    opportunityNumber: input.opportunityNumber ?? existing?.opportunityNumber ?? "",
+    eligibilities: input.eligibilities
+      ? input.eligibilities.map((value) => ({ type: value, states: [] }))
+      : existing?.eligibilities ?? [],
     focusAreas: input.focusAreas ?? existing?.focusAreas ?? [],
-    eligibilities: input.eligibilities ?? existing?.eligibilities ?? []
-  } as GrantOpportunity;
+    url: input.url ?? existing?.url ?? ""
+  };
 
   const milestonesSource =
     input.milestones ?? existing?.milestones ?? createDefaultMilestones(reminderDefaults, timezone, baseOpportunity);
@@ -1261,6 +1279,10 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
         importedIds.add(targetId);
         const nextStage = (grant.stage ?? duplicate?.stage ?? "Researching") as Stage;
         const nextPriority = (grant.priority ?? duplicate?.priority ?? "Medium") as Priority;
+        const nextEligibilities =
+          ensureEligibilityStrings(grant.eligibilities) ??
+          ensureEligibilityStrings(duplicate?.eligibilities) ??
+          [];
         normalized.set(targetId, {
           ...grant,
           id: targetId,
@@ -1274,7 +1296,7 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
           closeDate,
           postedDate: grant.postedDate ?? duplicate?.postedDate ?? null,
           focusAreas: grant.focusAreas ?? duplicate?.focusAreas ?? [],
-          eligibilities: grant.eligibilities ?? duplicate?.eligibilities ?? [],
+          eligibilities: nextEligibilities,
           opportunityNumber: opportunityNumber ?? duplicate?.opportunityNumber
         });
       }

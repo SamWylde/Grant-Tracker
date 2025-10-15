@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { AuthProvider } from "@/components/auth-context";
 import { GrantProvider } from "@/components/grant-context";
 import "./globals.css";
-import { fetchGrantOpportunities } from "@/lib/grants";
+import { fetchGrantOpportunities } from "@/lib/grant-data";
 
 export const metadata: Metadata = {
   title: "Grant Application Tracker",

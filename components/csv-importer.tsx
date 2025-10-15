@@ -2,7 +2,13 @@
 
 import { useMemo, useState } from "react";
 
-import { useGrantContext } from "./grant-context";
+import {
+  useGrantContext,
+  type ManualGrantInput,
+  type Priority,
+  type Stage,
+  type TaskStatus
+} from "./grant-context";
 
 type ParsedRow = {
   id: string;
@@ -19,6 +25,7 @@ type ParsedRow = {
     label: string;
     dueDate: string | null;
     assignee?: string;
+    status?: string | null;
   }[];
 };
 
@@ -43,6 +50,10 @@ const MAX_ROWS = 1000;
 const MAX_SHORT_FIELD_LENGTH = 200;
 const MAX_LONG_FIELD_LENGTH = 2000;
 
+const PRIORITY_VALUES: Priority[] = ["High", "Medium", "Low"];
+const STAGE_VALUES: Stage[] = ["Researching", "Drafting", "Submitted", "Awarded", "Declined"];
+const TASK_STATUS_VALUES: TaskStatus[] = ["pending", "completed"];
+
 function normalizeHeader(header: string) {
   return header.trim();
 }
@@ -53,6 +64,24 @@ function sanitizeCell(value: string, maxLength = MAX_LONG_FIELD_LENGTH) {
 
 function sanitizeId(value: string) {
   return sanitizeCell(value, MAX_SHORT_FIELD_LENGTH);
+}
+
+function normalizePriority(value?: string | null): Priority | undefined {
+  if (!value) return undefined;
+  const normalized = value.trim().toLowerCase();
+  return PRIORITY_VALUES.find((option) => option.toLowerCase() === normalized);
+}
+
+function normalizeStage(value?: string | null): Stage | undefined {
+  if (!value) return undefined;
+  const normalized = value.trim().toLowerCase();
+  return STAGE_VALUES.find((option) => option.toLowerCase() === normalized);
+}
+
+function normalizeTaskStatus(value?: string | null): TaskStatus {
+  if (!value) return "pending";
+  const normalized = value.trim().toLowerCase();
+  return TASK_STATUS_VALUES.find((option) => option.toLowerCase() === normalized) ?? "pending";
 }
 
 function parseDateCell(value: string, rowIndex: number, column: string, issues: string[]) {
@@ -133,12 +162,12 @@ function buildTasks(
 ) {
   const taskBuckets = new Map<
     number,
-    { label?: string; due?: string | null; owner?: string }
+    { label?: string; due?: string | null; owner?: string; status?: string | null }
   >();
   headers.forEach((header) => {
     if (!header.toLowerCase().startsWith(TASK_COLUMN_HINT.toLowerCase())) return;
     const normalized = header.trim();
-    const match = normalized.match(/Task\s*(\d+)?\s*(Name|Due|Owner)?/i);
+    const match = normalized.match(/Task\s*(\d+)?\s*(Name|Due|Owner|Status)?/i);
     if (!match) return;
     const index = match[1] ? Number.parseInt(match[1], 10) : 1;
     const bucket = taskBuckets.get(index) ?? {};
@@ -154,6 +183,8 @@ function buildTasks(
       bucket.due = parseDateCell(value, rowIndex, `task ${index} due`, issues);
     } else if (field === "owner") {
       bucket.owner = value;
+    } else if (field === "status") {
+      bucket.status = value;
     }
     taskBuckets.set(index, bucket);
   });
@@ -168,7 +199,8 @@ function buildTasks(
     tasks.push({
       label: bucket.label,
       dueDate,
-      assignee: ownerEmail
+      assignee: ownerEmail,
+      status: bucket.status ?? null
     });
   }
   return tasks;
@@ -353,7 +385,7 @@ export function CsvImporter() {
                   if (isImporting) return;
                   setIsImporting(true);
                   try {
-                    const payload = rows.map((row) => ({
+                    const payload: (ManualGrantInput & { id: string })[] = rows.map((row) => ({
                       id: row.id,
                       title: row.title,
                       agency: row.agency,
@@ -361,14 +393,14 @@ export function CsvImporter() {
                       closeDate: row.closeDate,
                       owner: row.owner,
                       notes: row.notes,
-                      priority: row.priority as any,
-                      stage: row.stage as any,
+                      priority: normalizePriority(row.priority),
+                      stage: normalizeStage(row.stage),
                       focusAreas: row.focusAreas,
                       tasks: row.tasks.map((task) => ({
                         label: task.label,
                         dueDate: task.dueDate,
                         assigneeEmail: task.assignee ?? null,
-                        status: "pending"
+                        status: normalizeTaskStatus(task.status)
                       })),
                       source: "imported"
                     }));

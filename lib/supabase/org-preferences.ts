@@ -1,7 +1,19 @@
 "use server";
 
 import type { OrgPreferences } from "@/components/grant-context";
-import { getSupabaseServerClient } from "./server";
+import { getSupabaseServerClient, isSupabaseServerConfigured } from "./server";
+
+function applyAbortSignal<T>(query: T, signal?: AbortSignal): T {
+  if (
+    signal &&
+    query &&
+    typeof query === "object" &&
+    typeof (query as { abortSignal?: (signal: AbortSignal) => T }).abortSignal === "function"
+  ) {
+    return (query as unknown as { abortSignal: (signal: AbortSignal) => T }).abortSignal(signal);
+  }
+  return query;
+}
 
 type OrgPreferencesRow = {
   org_id: string;
@@ -22,10 +34,19 @@ type SupabaseOptions = {
   signal?: AbortSignal;
 };
 
+function isOrgPreferencesRow(value: unknown): value is OrgPreferencesRow {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<OrgPreferencesRow>;
+  return typeof candidate.org_id === "string";
+}
+
 export async function fetchOrgPreferences(
   orgId: string = DEFAULT_ORG_ID,
   options: SupabaseOptions = {}
 ): Promise<Partial<OrgPreferences> | null> {
+  if (!isSupabaseServerConfigured()) {
+    return null;
+  }
   const client = getSupabaseServerClient();
   let query = client
     .from("org_preferences")
@@ -45,9 +66,7 @@ export async function fetchOrgPreferences(
     .eq("org_id", orgId)
     .maybeSingle();
 
-  if (options.signal) {
-    query = query.abortSignal(options.signal);
-  }
+  query = applyAbortSignal(query, options.signal);
 
   const { data, error } = await query;
 
@@ -55,9 +74,9 @@ export async function fetchOrgPreferences(
     throw new Error(`Failed to load org preferences: ${error.message}`);
   }
 
-  if (!data) return null;
+  if (!data || !isOrgPreferencesRow(data)) return null;
 
-  const row = data as OrgPreferencesRow;
+  const row = data;
   const next: Partial<OrgPreferences> = {};
   if (row.states !== null) next.states = row.states;
   if (row.focus_areas !== null) next.focusAreas = row.focus_areas;
@@ -73,6 +92,9 @@ export async function upsertOrgPreferences(
   preferences: OrgPreferences,
   orgId: string = DEFAULT_ORG_ID
 ) {
+  if (!isSupabaseServerConfigured()) {
+    return;
+  }
   const client = getSupabaseServerClient();
   const now = new Date().toISOString();
   const payload: OrgPreferencesRow = {
