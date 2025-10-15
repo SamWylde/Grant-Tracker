@@ -63,6 +63,13 @@ function parseDateCell(value: string, rowIndex: number, column: string, issues: 
     issues.push(`Row ${rowIndex}: Invalid ${column} date "${value}". Please use a recognizable date format.`);
     return null;
   }
+  const year = parsed.getUTCFullYear();
+  if (year < 1970 || year > 2100) {
+    issues.push(
+      `Row ${rowIndex}: ${column} date "${value}" must be between 1970 and 2100 to avoid scheduling errors.`
+    );
+    return null;
+  }
   return parsed.toISOString();
 }
 

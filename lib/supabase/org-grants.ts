@@ -8,7 +8,11 @@ import type {
 } from "@/components/grant-context";
 import { getSupabaseServerClient } from "./server";
 
-type StageHistoryRecord = SavedGrant["history"][number] & { changed_at?: string };
+type StageHistoryRow = {
+  stage: Stage;
+  changed_at?: string;
+  note?: string | null;
+};
 
 type OrgGrantRow = {
   id: string;
@@ -24,7 +28,7 @@ type OrgGrantRow = {
   notes: string | null;
   owner: string | null;
   attachments: string[] | null;
-  history: StageHistoryRecord[] | null;
+  history: StageHistoryRow[] | null;
   milestones: Milestone[] | null;
   tasks: Task[] | null;
   source: SavedGrant["source"] | null;
@@ -39,19 +43,29 @@ type OrgGrantRow = {
   updated_at: string | null;
 };
 
-const DEFAULT_ORG_ID =
-  process.env.SUPABASE_ORG_ID ?? process.env.NEXT_PUBLIC_SUPABASE_ORG_ID ?? "demo-org";
+function getDefaultOrgId() {
+  const orgId = process.env.SUPABASE_ORG_ID ?? process.env.NEXT_PUBLIC_SUPABASE_ORG_ID;
+  if (!orgId) {
+    throw new Error("Supabase org id environment variable is not configured");
+  }
+  return orgId;
+}
 
 type SupabaseOptions = {
   signal?: AbortSignal;
 };
 
 function mapRowToSavedGrant(row: OrgGrantRow): SavedGrant {
-  const history = (row.history ?? []).map((entry) => ({
-    stage: entry.stage,
-    changedAt: entry.changedAt ?? entry.changed_at ?? new Date().toISOString(),
-    note: entry.note
-  }));
+  const history = (row.history ?? []).map((entry: StageHistoryRow) => {
+    const changedAt =
+      entry.changed_at ?? (entry as StageHistoryRow & { changedAt?: string }).changedAt ?? new Date().toISOString();
+
+    return {
+      stage: entry.stage,
+      changedAt,
+      note: entry.note ?? undefined
+    };
+  });
 
   return {
     id: row.id,
@@ -98,7 +112,11 @@ function mapSavedGrantToRow(grant: SavedGrant, orgId: string): OrgGrantRow {
     notes: grant.notes ?? "",
     owner: grant.owner ?? null,
     attachments: grant.attachments ?? [],
-    history: grant.history ?? [],
+    history: (grant.history ?? []).map((entry) => ({
+      stage: entry.stage,
+      changed_at: entry.changedAt ?? now,
+      note: entry.note ?? null
+    } satisfies StageHistoryRow)),
     milestones: grant.milestones ?? [],
     tasks: grant.tasks ?? [],
     source: grant.source ?? "manual",
@@ -115,7 +133,7 @@ function mapSavedGrantToRow(grant: SavedGrant, orgId: string): OrgGrantRow {
 }
 
 export async function fetchOrgGrants(
-  orgId: string = DEFAULT_ORG_ID,
+  orgId: string = getDefaultOrgId(),
   options: SupabaseOptions = {}
 ): Promise<SavedGrant[]> {
   const client = getSupabaseServerClient();
@@ -169,7 +187,7 @@ export async function fetchOrgGrants(
 
 export async function upsertOrgGrant(
   grant: SavedGrant,
-  orgId: string = DEFAULT_ORG_ID,
+  orgId: string = getDefaultOrgId(),
   options: SupabaseOptions = {}
 ) {
   const client = getSupabaseServerClient();
@@ -186,7 +204,7 @@ export async function upsertOrgGrant(
 
 export async function deleteOrgGrant(
   grantId: string,
-  orgId: string = DEFAULT_ORG_ID,
+  orgId: string = getDefaultOrgId(),
   options: SupabaseOptions = {}
 ) {
   const client = getSupabaseServerClient();
