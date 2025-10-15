@@ -7,6 +7,7 @@ import { describeOffset } from "@/lib/reminders";
 import { generateIcsFeed } from "@/lib/calendar";
 
 import { useGrantContext } from "./grant-context";
+import { OrgInviteManager } from "./org-invite-manager";
 
 const PRIORITY_FOCUS_OPTIONS = [
   { value: "Economic Development", label: "Economic Development" },
@@ -450,6 +451,9 @@ export function OrgSettingsForm() {
             </div>
           </div>
         </div>
+      </div>
+      <div className="mt-8">
+        <OrgInviteManager />
       </div>
     </section>
   );

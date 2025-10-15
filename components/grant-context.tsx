@@ -42,6 +42,56 @@ type Milestone = {
   lastUpdatedAt: string;
 };
 
+type TaskStatus = "pending" | "completed";
+
+type Task = {
+  id: string;
+  label: string;
+  dueDate: string | null;
+  status: TaskStatus;
+  assigneeId?: string | null;
+  assigneeName?: string | null;
+  assigneeEmail?: string | null;
+  milestoneId?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string | null;
+  createdById?: string | null;
+  createdByName?: string | null;
+  createdByEmail?: string | null;
+};
+
+type TaskDraft = Omit<
+  Task,
+  "id" | "status" | "createdAt" | "updatedAt" | "completedAt"
+> & { id?: string; status?: TaskStatus };
+
+type ManualGrantInput = {
+  id?: string;
+  title: string;
+  agency: string;
+  summary?: string;
+  closeDate?: string | null;
+  postedDate?: string | null;
+  url?: string;
+  owner?: string;
+  priority?: Priority;
+  stage?: Stage;
+  notes?: string;
+  estimatedFunding?: number | null;
+  awardFloor?: number | null;
+  awardCeiling?: number | null;
+  focusAreas?: string[];
+  eligibilities?: string[];
+  opportunityNumber?: string;
+  tasks?: TaskDraft[];
+  milestones?: Partial<Milestone>[];
+  source?: SavedGrant["source"];
+};
+
+type ImportedGrantInput = ManualGrantInput;
+
 type CalendarSettings = {
   icsSecret: string;
   lastGeneratedAt: string | null;
@@ -71,6 +121,10 @@ type SavedGrant = GrantOpportunity & {
   attachments: string[];
   history: StageHistoryEntry[];
   milestones: Milestone[];
+  tasks: Task[];
+  source?: "grants.gov" | "manual" | "imported";
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type GrantContextValue = {
@@ -91,6 +145,15 @@ type GrantContextValue = {
   ) => void;
   addMilestone: (id: string, milestone: Pick<Milestone, "label" | "type">) => void;
   removeMilestone: (id: string, milestoneId: string) => void;
+  addTask: (id: string, task: TaskDraft) => void;
+  updateTask: (id: string, taskId: string, updates: Partial<Task>) => void;
+  toggleTaskStatus: (id: string, taskId: string, completed: boolean) => void;
+  removeTask: (id: string, taskId: string) => void;
+  createManualGrant: (input: ManualGrantInput) => string;
+  bulkImportGrants: (grants: ImportedGrantInput[]) => {
+    imported: string[];
+    skipped: string[];
+  };
 };
 
 type GrantProviderProps = {
@@ -140,6 +203,27 @@ type Action =
     }
   | {
       type: "refresh-schedules";
+      timezone: string;
+      reminderDefaults: ToggleSaveAction["reminderDefaults"];
+    }
+  | { type: "add-task"; id: string; task: TaskDraft }
+  | {
+      type: "update-task";
+      id: string;
+      taskId: string;
+      updates: Partial<Task>;
+    }
+  | { type: "remove-task"; id: string; taskId: string }
+  | { type: "toggle-task"; id: string; taskId: string; completed: boolean }
+  | {
+      type: "upsert-grant";
+      grant: ManualGrantInput & { id: string };
+      timezone: string;
+      reminderDefaults: ToggleSaveAction["reminderDefaults"];
+    }
+  | {
+      type: "bulk-import";
+      grants: (ManualGrantInput & { id: string })[];
       timezone: string;
       reminderDefaults: ToggleSaveAction["reminderDefaults"];
     };
@@ -205,6 +289,126 @@ function createDefaultMilestones(
   );
 }
 
+function hydrateTask(task: Partial<Task>): Task {
+  const now = new Date().toISOString();
+  const baseStatus = task.status ?? (task.completedAt ? "completed" : "pending");
+  const completedAt =
+    baseStatus === "completed"
+      ? task.completedAt ?? now
+      : null;
+  return {
+    id: task.id ?? generateId("task"),
+    label: task.label ?? "Untitled task",
+    dueDate: task.dueDate ?? null,
+    status: baseStatus,
+    assigneeId: task.assigneeId ?? null,
+    assigneeName: task.assigneeName ?? null,
+    assigneeEmail: task.assigneeEmail ?? null,
+    milestoneId: task.milestoneId ?? null,
+    notes: task.notes ?? null,
+    createdAt: task.createdAt ?? now,
+    updatedAt: task.updatedAt ?? now,
+    completedAt,
+    createdById: task.createdById ?? null,
+    createdByName: task.createdByName ?? null,
+    createdByEmail: task.createdByEmail ?? null
+  } satisfies Task;
+}
+
+function hydrateTasks(tasks?: Partial<Task>[]): Task[] {
+  return (tasks ?? []).map((task) => hydrateTask(task));
+}
+
+function buildManualGrant(
+  input: ManualGrantInput & { id: string },
+  timezone: string,
+  reminderDefaults: ToggleSaveAction["reminderDefaults"],
+  existing?: SavedGrant
+): SavedGrant {
+  const now = new Date().toISOString();
+  const stage = input.stage ?? existing?.stage ?? "Researching";
+  const priority = input.priority ?? existing?.priority ?? "Medium";
+  const baseOpportunity: GrantOpportunity = {
+    ...(existing ?? {}),
+    ...(input as GrantOpportunity),
+    id: input.id,
+    title: input.title,
+    agency: input.agency,
+    summary: input.summary ?? existing?.summary ?? "",
+    closeDate: input.closeDate ?? existing?.closeDate ?? null,
+    postedDate: input.postedDate ?? existing?.postedDate ?? null,
+    url: input.url ?? existing?.url ?? "",
+    opportunityNumber: input.opportunityNumber ?? existing?.opportunityNumber ?? "",
+    focusAreas: input.focusAreas ?? existing?.focusAreas ?? [],
+    eligibilities: input.eligibilities ?? existing?.eligibilities ?? []
+  } as GrantOpportunity;
+
+  const milestonesSource =
+    input.milestones ?? existing?.milestones ?? createDefaultMilestones(reminderDefaults, timezone, baseOpportunity);
+
+  const milestones = milestonesSource.map((milestone) =>
+    applySchedule(
+      {
+        id: milestone.id ?? generateId("milestone"),
+        label: milestone.label ?? "Milestone",
+        type: milestone.type ?? "Custom",
+        dueDate: milestone.dueDate ?? null,
+        remindersEnabled: milestone.remindersEnabled ?? true,
+        reminderChannels: ensureReminderChannels(
+          milestone.reminderChannels ?? [],
+          reminderDefaults.channels
+        ),
+        reminderOffsets: milestone.reminderOffsets ?? DEFAULT_REMINDER_OFFSETS,
+        scheduledReminders: milestone.scheduledReminders ?? [],
+        lastUpdatedAt: milestone.lastUpdatedAt ?? now
+      },
+      reminderDefaults,
+      timezone,
+      baseOpportunity
+    )
+  );
+
+  let baseHistory = existing?.history?.length
+    ? existing.history
+    : [
+        {
+          stage,
+          changedAt: now,
+          note: input.source === "imported" ? "Imported from CSV" : "Created manually"
+        }
+      ];
+
+  if (existing && existing.stage !== stage) {
+    baseHistory = [
+      ...baseHistory,
+      {
+        stage,
+        changedAt: now,
+        note: input.source === "imported" ? "Stage updated during import" : "Stage updated"
+      }
+    ];
+  }
+
+  return {
+    ...baseOpportunity,
+    stage,
+    owner: input.owner ?? existing?.owner,
+    priority,
+    notes: input.notes ?? existing?.notes ?? "",
+    attachments: existing?.attachments ?? [],
+    history: baseHistory,
+    milestones,
+    tasks: hydrateTasks(input.tasks ?? existing?.tasks),
+    source: input.source ?? existing?.source ?? "manual",
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+    estimatedFunding: input.estimatedFunding ?? existing?.estimatedFunding ?? null,
+    awardFloor: input.awardFloor ?? existing?.awardFloor ?? null,
+    awardCeiling: input.awardCeiling ?? existing?.awardCeiling ?? null,
+    expectedNumberOfAwards: existing?.expectedNumberOfAwards ?? null
+  } as SavedGrant;
+}
+
 function applySchedule(
   milestone: Milestone,
   reminderDefaults: ToggleSaveAction["reminderDefaults"],
@@ -256,6 +460,7 @@ function reducer(state: State, action: Action): State {
       for (const grant of action.grants) {
         if (!grant.id) continue;
         const hydratedHistory = grant.history ?? [];
+        const now = new Date().toISOString();
         const baseGrant: SavedGrant = {
           ...grant,
           id: grant.id,
@@ -296,7 +501,11 @@ function reducer(state: State, action: Action): State {
                 action.timezone,
                 grant as GrantOpportunity
               )
-          )
+          ),
+          tasks: hydrateTasks(grant.tasks as Partial<Task>[]),
+          source: grant.source ?? "grants.gov",
+          createdAt: grant.createdAt ?? now,
+          updatedAt: grant.updatedAt ?? now
         } as SavedGrant;
         nextState[baseGrant.id] = baseGrant;
       }
@@ -329,7 +538,11 @@ function reducer(state: State, action: Action): State {
             action.reminderDefaults,
             action.timezone,
             action.grant
-          )
+          ),
+          tasks: [],
+          source: "grants.gov",
+          createdAt: now,
+          updatedAt: now
         }
       };
     }
@@ -347,7 +560,8 @@ function reducer(state: State, action: Action): State {
         [action.id]: {
           ...existing,
           stage: action.stage,
-          history: [...existing.history, historyEntry]
+          history: [...existing.history, historyEntry],
+          updatedAt: now
         }
       };
     }
@@ -358,7 +572,8 @@ function reducer(state: State, action: Action): State {
         ...state,
         [action.id]: {
           ...existing,
-          ...action.updates
+          ...action.updates,
+          updatedAt: new Date().toISOString()
         }
       };
     }
@@ -385,7 +600,8 @@ function reducer(state: State, action: Action): State {
         ...state,
         [action.id]: {
           ...existing,
-          milestones: nextMilestones
+          milestones: nextMilestones,
+          updatedAt: new Date().toISOString()
         }
       };
     }
@@ -416,7 +632,8 @@ function reducer(state: State, action: Action): State {
         ...state,
         [action.id]: {
           ...existing,
-          milestones: [...(existing.milestones ?? []), withSchedule]
+          milestones: [...(existing.milestones ?? []), withSchedule],
+          updatedAt: new Date().toISOString()
         }
       };
     }
@@ -429,7 +646,8 @@ function reducer(state: State, action: Action): State {
           ...existing,
           milestones: (existing.milestones ?? []).filter(
             (milestone) => milestone.id !== action.milestoneId
-          )
+          ),
+          updatedAt: new Date().toISOString()
         }
       };
     }
@@ -446,8 +664,106 @@ function reducer(state: State, action: Action): State {
         );
         nextState[grantId] = {
           ...grant,
-          milestones
+          milestones,
+          updatedAt: new Date().toISOString()
         };
+      }
+      return nextState;
+    }
+    case "add-task": {
+      const existing = state[action.id];
+      if (!existing) return state;
+      const task = hydrateTask(action.task);
+      const now = new Date().toISOString();
+      return {
+        ...state,
+        [action.id]: {
+          ...existing,
+          tasks: [...(existing.tasks ?? []), task],
+          updatedAt: now
+        }
+      };
+    }
+    case "update-task": {
+      const existing = state[action.id];
+      if (!existing) return state;
+      const index = (existing.tasks ?? []).findIndex((task) => task.id === action.taskId);
+      if (index === -1) return state;
+      const now = new Date().toISOString();
+      const nextTasks = [...existing.tasks];
+      nextTasks[index] = {
+        ...nextTasks[index],
+        ...action.updates,
+        updatedAt: now
+      };
+      return {
+        ...state,
+        [action.id]: {
+          ...existing,
+          tasks: nextTasks,
+          updatedAt: now
+        }
+      };
+    }
+    case "remove-task": {
+      const existing = state[action.id];
+      if (!existing) return state;
+      const nextTasks = (existing.tasks ?? []).filter((task) => task.id !== action.taskId);
+      return {
+        ...state,
+        [action.id]: {
+          ...existing,
+          tasks: nextTasks,
+          updatedAt: new Date().toISOString()
+        }
+      };
+    }
+    case "toggle-task": {
+      const existing = state[action.id];
+      if (!existing) return state;
+      const index = (existing.tasks ?? []).findIndex((task) => task.id === action.taskId);
+      if (index === -1) return state;
+      const now = new Date().toISOString();
+      const nextTasks = [...existing.tasks];
+      nextTasks[index] = {
+        ...nextTasks[index],
+        status: action.completed ? "completed" : "pending",
+        completedAt: action.completed ? now : null,
+        updatedAt: now
+      };
+      return {
+        ...state,
+        [action.id]: {
+          ...existing,
+          tasks: nextTasks,
+          updatedAt: now
+        }
+      };
+    }
+    case "upsert-grant": {
+      const existing = state[action.grant.id];
+      const nextGrant = buildManualGrant(
+        action.grant,
+        action.timezone,
+        action.reminderDefaults,
+        existing
+      );
+      return {
+        ...state,
+        [nextGrant.id]: nextGrant
+      };
+    }
+    case "bulk-import": {
+      const nextState = { ...state };
+      for (const grant of action.grants) {
+        const existing = nextState[grant.id];
+        const nextGrant = buildManualGrant(
+          grant,
+          action.timezone,
+          action.reminderDefaults,
+          existing
+        );
+        nextState[nextGrant.id] = nextGrant;
       }
       return nextState;
     }
@@ -636,6 +952,127 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
     []
   );
 
+  const addTask = useCallback(
+    (id: string, task: TaskDraft) => {
+      dispatch({ type: "add-task", id, task });
+    },
+    []
+  );
+
+  const updateTask = useCallback((id: string, taskId: string, updates: Partial<Task>) => {
+    dispatch({ type: "update-task", id, taskId, updates });
+  }, []);
+
+  const toggleTaskStatus = useCallback((id: string, taskId: string, completed: boolean) => {
+    dispatch({ type: "toggle-task", id, taskId, completed });
+  }, []);
+
+  const removeTask = useCallback((id: string, taskId: string) => {
+    dispatch({ type: "remove-task", id, taskId });
+  }, []);
+
+  const createManualGrant = useCallback(
+    (input: ManualGrantInput) => {
+      const id = input.id ?? generateId("manual-grant");
+      dispatch({
+        type: "upsert-grant",
+        grant: { ...input, id, source: input.source ?? "manual" },
+        timezone: orgPreferences.timezone ?? "UTC",
+        reminderDefaults: {
+          channels: orgPreferences.reminderChannels,
+          unsubscribeUrl: orgPreferences.unsubscribeUrl
+        }
+      });
+      return id;
+    },
+    [orgPreferences.reminderChannels, orgPreferences.timezone, orgPreferences.unsubscribeUrl]
+  );
+
+  const bulkImportGrants = useCallback(
+    (grants: ImportedGrantInput[]) => {
+      const timezone = orgPreferences.timezone ?? "UTC";
+      const reminderDefaults = {
+        channels: orgPreferences.reminderChannels,
+        unsubscribeUrl: orgPreferences.unsubscribeUrl
+      };
+      const existing = Object.values(savedGrants);
+      const normalized = new Map<string, ManualGrantInput & { id: string }>();
+      const importedIds = new Set<string>();
+      const duplicateIds = new Set<string>();
+      const invalidIds = new Set<string>();
+
+      for (const grant of grants) {
+        const title = grant.title?.trim();
+        const agency = grant.agency?.trim();
+        if (!title || !agency) {
+          const identifier =
+            grant.id ?? grant.opportunityNumber ?? `row-${invalidIds.size + duplicateIds.size + 1}`;
+          invalidIds.add(identifier);
+          continue;
+        }
+        const closeDate = grant.closeDate ?? null;
+        const opportunityNumber = grant.opportunityNumber?.trim();
+        const duplicate = existing.find((item) => {
+          const normalizedTitle = item.title?.trim().toLowerCase();
+          const normalizedGrantTitle = title.toLowerCase();
+          const sameTitle = normalizedTitle === normalizedGrantTitle;
+          const sameDeadline = item.closeDate && closeDate ? item.closeDate === closeDate : false;
+          const sameOpportunity =
+            opportunityNumber && item.opportunityNumber
+              ? item.opportunityNumber === opportunityNumber
+              : false;
+          return sameOpportunity || (sameTitle && sameDeadline);
+        });
+        const baseId = grant.id ?? generateId("imported-grant");
+        const targetId = duplicate?.id ?? baseId;
+        if (duplicate) {
+          duplicateIds.add(targetId);
+        }
+        importedIds.add(targetId);
+        const nextStage = (grant.stage ?? duplicate?.stage ?? "Researching") as Stage;
+        const nextPriority = (grant.priority ?? duplicate?.priority ?? "Medium") as Priority;
+        normalized.set(targetId, {
+          ...grant,
+          id: targetId,
+          title,
+          agency,
+          source: grant.source ?? "imported",
+          stage: nextStage,
+          priority: nextPriority,
+          owner: grant.owner ?? duplicate?.owner,
+          notes: grant.notes ?? duplicate?.notes ?? "",
+          closeDate,
+          postedDate: grant.postedDate ?? duplicate?.postedDate ?? null,
+          focusAreas: grant.focusAreas ?? duplicate?.focusAreas ?? [],
+          eligibilities: grant.eligibilities ?? duplicate?.eligibilities ?? [],
+          opportunityNumber: opportunityNumber ?? duplicate?.opportunityNumber
+        });
+      }
+
+      const payload = Array.from(normalized.values());
+      if (payload.length > 0) {
+        dispatch({
+          type: "bulk-import",
+          grants: payload,
+          timezone,
+          reminderDefaults
+        });
+      }
+
+      return {
+        imported: Array.from(importedIds),
+        skipped: Array.from(new Set([...duplicateIds, ...invalidIds]))
+      };
+    },
+    [
+      dispatch,
+      orgPreferences.reminderChannels,
+      orgPreferences.timezone,
+      orgPreferences.unsubscribeUrl,
+      savedGrants
+    ]
+  );
+
   const value: GrantContextValue = useMemo(
     () => ({
       allGrants,
@@ -647,7 +1084,13 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
       updateGrantDetails,
       updateMilestone,
       addMilestone,
-      removeMilestone
+      removeMilestone,
+      addTask,
+      updateTask,
+      toggleTaskStatus,
+      removeTask,
+      createManualGrant,
+      bulkImportGrants
     }),
     [
       allGrants,
@@ -658,7 +1101,13 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
       updateGrantDetails,
       updateMilestone,
       addMilestone,
-      removeMilestone
+      removeMilestone,
+      addTask,
+      updateTask,
+      toggleTaskStatus,
+      removeTask,
+      createManualGrant,
+      bulkImportGrants
     ]
   );
 
@@ -681,5 +1130,10 @@ export type {
   Priority,
   ReminderChannel,
   Milestone,
-  ReminderScheduleEntry
+  ReminderScheduleEntry,
+  Task,
+  TaskStatus,
+  TaskDraft,
+  ManualGrantInput,
+  ImportedGrantInput
 };
