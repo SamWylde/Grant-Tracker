@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 
+import { ColorSchemeScript, MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
+
 import { AuthProvider } from "@/components/auth-context";
 import { GrantProvider } from "@/components/grant-context";
 import "./globals.css";
@@ -44,11 +47,46 @@ export default async function RootLayout({
   const initialGrants = await fetchGrantOpportunities();
 
   return (
-    <html lang="en" className="scroll-smooth">
-      <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
-        <AuthProvider>
-          <GrantProvider initialGrants={initialGrants}>{children}</GrantProvider>
-        </AuthProvider>
+    <html lang="en">
+      <head>
+        <ColorSchemeScript defaultColorScheme="dark" />
+      </head>
+      <body>
+        <MantineProvider
+          defaultColorScheme="dark"
+          theme={{
+            fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            headings: {
+              fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+              sizes: {
+                h1: { fontSize: "2.75rem", fontWeight: "700" }
+              }
+            },
+            colors: {
+              midnight: [
+                "#edf2ff",
+                "#dbe4ff",
+                "#bac8ff",
+                "#91a7ff",
+                "#748ffc",
+                "#5c7cfa",
+                "#4c6ef5",
+                "#4263eb",
+                "#3b5bdb",
+                "#364fc7"
+              ]
+            },
+            primaryColor: "midnight",
+            primaryShade: 6
+          }}
+          withGlobalStyles={false}
+          withNormalizeCSS={false}
+        >
+          <Notifications position="top-right" autoClose={4000} />
+          <AuthProvider>
+            <GrantProvider initialGrants={initialGrants}>{children}</GrantProvider>
+          </AuthProvider>
+        </MantineProvider>
       </body>
     </html>
   );
