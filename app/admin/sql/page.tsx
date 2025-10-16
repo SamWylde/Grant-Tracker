@@ -274,7 +274,6 @@ export default function AdminSqlPage() {
                   data={PAGE_SIZE_OPTIONS.map((value) => ({ value: String(value), label: `${value}` }))}
                   value={String(pageSize)}
                   onChange={(value) => value && setPageSize(Number(value))}
-                  withinPortal
                   size="xs"
                 />
                 <Group gap={4}>

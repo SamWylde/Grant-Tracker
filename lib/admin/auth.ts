@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerClient, type SupabaseClient } from "@supabase/auth-helpers-nextjs";
+import { createServerComponentClient, type SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
 import { logAdminAccessAttempt } from "@/lib/admin/audit";
 import { getSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
@@ -26,7 +26,7 @@ export function isAdminPanelEnabled(): boolean {
   return flag === undefined ? true : flag !== "false";
 }
 
-function createServerSupabaseClient(): SupabaseClient<SupabaseDatabase> {
+function getServerSupabaseClient(): SupabaseClient<SupabaseDatabase> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -36,20 +36,7 @@ function createServerSupabaseClient(): SupabaseClient<SupabaseDatabase> {
     );
   }
 
-  const cookieStore = cookies();
-  return createServerClient<SupabaseDatabase>(supabaseUrl, supabaseKey, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
-      },
-      set(name: string, value: string, options: any) {
-        cookieStore.set({ name, value, ...options });
-      },
-      remove(name: string, options: any) {
-        cookieStore.set({ name, value: "", ...options, maxAge: 0 });
-      }
-    }
-  });
+  return createServerComponentClient<SupabaseDatabase>({ cookies }, { supabaseUrl, supabaseKey });
 }
 
 export async function isPlatformAdmin(userId: string): Promise<boolean> {
@@ -89,7 +76,7 @@ export async function getAdminContext(): Promise<AdminContext> {
     throw new AdminAccessError("Admin panel is disabled");
   }
 
-  const supabase = createServerSupabaseClient();
+  const supabase = getServerSupabaseClient();
   const {
     data: { user },
     error
