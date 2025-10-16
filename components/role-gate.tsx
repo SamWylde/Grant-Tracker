@@ -7,13 +7,15 @@ import { useAuth, type OrgMembershipRole } from "./auth-context";
 export function RoleGate({
   role,
   children,
-  fallback = null
+  fallback = null,
+  allowPlatformAdmins = true
 }: {
   role: OrgMembershipRole;
   children: React.ReactNode;
   fallback?: React.ReactNode;
+  allowPlatformAdmins?: boolean;
 }) {
-  const { hasRole, isLoading } = useAuth();
+  const { hasRole, isLoading, isPlatformAdmin } = useAuth();
 
   if (isLoading) {
     return (
@@ -23,6 +25,10 @@ export function RoleGate({
         </Text>
       </Paper>
     );
+  }
+
+  if (allowPlatformAdmins && isPlatformAdmin) {
+    return <>{children}</>;
   }
 
   if (!hasRole(role)) {

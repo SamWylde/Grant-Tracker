@@ -56,6 +56,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   isLoading: boolean;
   membership: OrgMembership | null;
+  isPlatformAdmin: boolean;
   invites: OrgInvite[];
   refreshMembership: () => Promise<void>;
   signInWithPassword: (email: string, password: string) => Promise<{ error?: string }>;
@@ -117,6 +118,21 @@ async function fetchInvitesForOrg(
   }));
 }
 
+async function fetchPlatformAdminStatus(supabase: SupabaseClient, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("platform_admins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to fetch platform admin status", error);
+    return false;
+  }
+
+  return Boolean(data?.user_id);
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => {
     if (!isSupabaseBrowserConfigured()) {
@@ -135,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const userRef = useRef<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [membership, setMembership] = useState<OrgMembership | null>(null);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [invites, setInvites] = useState<OrgInvite[]>([]);
 
   const refreshMembership = useCallback(async () => {
@@ -147,6 +164,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const result = await fetchMembershipForUser(supabase, currentUser.id);
       setMembership(result);
+      const platformStatus = await fetchPlatformAdminStatus(supabase, currentUser.id);
+      setIsPlatformAdmin(platformStatus);
       if (result?.orgId && result.role === "admin") {
         const nextInvites = await fetchInvitesForOrg(supabase, result.orgId);
         setInvites(nextInvites);
@@ -224,6 +243,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) {
       setMembership(null);
       setInvites([]);
+      setIsPlatformAdmin(false);
       return;
     }
     void refreshMembership();
@@ -258,6 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setMembership(null);
     setInvites([]);
+    setIsPlatformAdmin(false);
   }, [supabase]);
 
   const inviteMember = useCallback(
@@ -378,11 +399,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const hasRole = useCallback(
     (role: OrgMembershipRole) => {
+      if (isPlatformAdmin) return true;
       if (!membership) return false;
       if (membership.role === "admin") return true;
       return membership.role === role;
     },
-    [membership]
+    [isPlatformAdmin, membership]
   );
 
   const value = useMemo<AuthContextValue>(
@@ -392,6 +414,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       isLoading,
       membership,
+      isPlatformAdmin,
       invites,
       refreshMembership,
       signInWithPassword,
@@ -408,6 +431,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       membership,
       invites,
+      isPlatformAdmin,
       refreshMembership,
       signInWithPassword,
       signOut,
