@@ -1,17 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 
 import { Button, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
 
 import { useAuth } from "@/components/auth-context";
+import { isSupabaseBrowserConfigured } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const { signInWithPassword, signOut, user, membership, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+
+  const supabaseDebug = useMemo(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? null;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? null;
+    return {
+      isConfigured: isSupabaseBrowserConfigured(),
+      url: url ?? "(not set)",
+      anonKey: anonKey
+        ? `${anonKey.slice(0, 4)}…${anonKey.slice(-4)}`
+        : "(not set)"
+    };
+  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -88,6 +101,22 @@ export default function LoginPage() {
               {message}
             </Text>
           )}
+          <Paper withBorder radius="md" p="sm" variant="surfaceSunken">
+            <Stack gap="xs">
+              <Text size="xs" fw={600} ta="center">
+                Supabase configuration status
+              </Text>
+              <Text size="xs" c="dimmed" ta="center">
+                Browser client configured: {supabaseDebug.isConfigured ? "Yes" : "No"}
+              </Text>
+              <Text size="xs" c="dimmed" ta="center" style={{ wordBreak: "break-all" }}>
+                NEXT_PUBLIC_SUPABASE_URL: {supabaseDebug.url}
+              </Text>
+              <Text size="xs" c="dimmed" ta="center" style={{ wordBreak: "break-all" }}>
+                NEXT_PUBLIC_SUPABASE_ANON_KEY: {supabaseDebug.anonKey}
+              </Text>
+            </Stack>
+          </Paper>
           <Button component={Link} href="/" variant="subtle" size="xs">
             Return to marketing site
           </Button>
