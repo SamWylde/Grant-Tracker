@@ -1,9 +1,6 @@
-import grantsData from "@/data/sample-grants.json";
-import { applyGrantFilters, type GrantOpportunity } from "@/lib/grants";
+import { GrantsRepository, mapGrantRecordsToOpportunities } from "@/lib/supabase/grants-repository";
 
 export const runtime = "nodejs";
-
-const ALL_GRANTS = grantsData as GrantOpportunity[];
 
 function parseNumber(value: string | null) {
   if (!value) return null;
@@ -18,7 +15,7 @@ export async function GET(request: Request) {
   const dueWithinDays = parseNumber(params.get("dueWithinDays"));
   const minAward = parseNumber(params.get("minAward"));
   const maxAward = parseNumber(params.get("maxAward"));
-  const query = params.get("q")?.toLowerCase() ?? null;
+  const query = params.get("q");
 
   const filters = {
     states: states ? states.split(",").map((value) => value.trim()).filter(Boolean) : undefined,
@@ -27,21 +24,18 @@ export async function GET(request: Request) {
       : undefined,
     dueWithinDays,
     minAward,
-    maxAward
+    maxAward,
+    query: query ?? undefined
   };
 
-  let grants = applyGrantFilters(ALL_GRANTS, filters);
+  try {
+    const repository = new GrantsRepository();
+    const records = await repository.getGrants(filters);
+    const grants = mapGrantRecordsToOpportunities(records);
 
-  if (query) {
-    grants = grants.filter((grant) => {
-      return (
-        grant.title.toLowerCase().includes(query) ||
-        grant.agency.toLowerCase().includes(query) ||
-        grant.summary.toLowerCase().includes(query) ||
-        grant.focusAreas.some((area) => area.toLowerCase().includes(query))
-      );
-    });
+    return Response.json({ grants, count: grants.length, source: "grants.gov" });
+  } catch (error) {
+    console.error("Error fetching grants:", error);
+    return Response.json({ error: "Failed to fetch grants", grants: [], count: 0 }, { status: 500 });
   }
-
-  return Response.json({ grants, count: grants.length });
 }
