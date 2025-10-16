@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 
-import { ColorSchemeScript, MantineProvider } from "@mantine/core";
-import { Notifications } from "@mantine/notifications";
+import { ColorSchemeScript } from "@mantine/core";
 
 import { AuthProvider } from "@/components/auth-context";
 import { GrantProvider } from "@/components/grant-context";
+import { AppThemeProvider } from "@/components/app-theme-provider";
 import "./globals.css";
 import { fetchGrantOpportunities } from "@/lib/grant-data";
-import { appTheme } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "Grant Application Tracker",
@@ -53,12 +52,11 @@ export default async function RootLayout({
         <ColorSchemeScript defaultColorScheme="dark" />
       </head>
       <body>
-        <MantineProvider defaultColorScheme="dark" theme={appTheme}>
-          <Notifications position="top-right" autoClose={4000} />
+        <AppThemeProvider>
           <AuthProvider>
             <GrantProvider initialGrants={initialGrants}>{children}</GrantProvider>
           </AuthProvider>
-        </MantineProvider>
+        </AppThemeProvider>
       </body>
     </html>
   );

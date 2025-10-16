@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 import {
@@ -8,6 +10,7 @@ import {
   Card,
   Container,
   Grid,
+  Flex,
   Group,
   List,
   Paper,
@@ -391,7 +394,7 @@ export default function HomePage() {
 
       <Box component="footer" py={48} px="xl">
         <Container size="xl">
-          <Group justify="space-between" align="center" gap="lg" direction={{ base: "column", md: "row" }}>
+          <Flex justify="space-between" align="center" gap="lg" direction={{ base: "column", md: "row" }}>
             <Text size="sm" c="dimmed">
               © {new Date().getFullYear()} Grant Tracker. Built to help small nonprofits win more funding.
             </Text>
@@ -406,7 +409,7 @@ export default function HomePage() {
                 Contact
               </Anchor>
             </Group>
-          </Group>
+          </Flex>
         </Container>
       </Box>
     </Box>

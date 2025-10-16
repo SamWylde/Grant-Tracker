@@ -25,7 +25,7 @@ import {
 import { IconAlertCircle, IconCalendarCog, IconCopy, IconRefresh } from "@tabler/icons-react";
 
 import { getUniqueFocusAreas, getUniqueStates } from "@/lib/grants";
-import { describeOffset } from "@/lib/reminders";
+import { describeOffset, ReminderChannel } from "@/lib/reminders";
 import { generateIcsFeed } from "@/lib/calendar";
 
 import { useGrantContext } from "./grant-context";
@@ -114,14 +114,8 @@ export function OrgSettingsForm() {
   }, [savedGrants]);
 
   return (
-    <Stack
-      gap="xl"
-      component={Paper}
-      withBorder
-      radius="xl"
-      p="xl"
-      variant="surfacePrimary"
-    >
+    <Paper withBorder radius="xl" p="xl" variant="surfacePrimary">
+      <Stack gap="xl">
       <Stack gap="sm">
         <Title order={3}>Org onboarding defaults</Title>
         <Text size="sm" c="dimmed">
@@ -229,13 +223,13 @@ export function OrgSettingsForm() {
                 label="Default channels"
                 data={REMINDER_CHANNEL_OPTIONS.map((option) => option)}
                 value={orgPreferences.reminderChannels}
-                onChange={(value) =>
+                onChange={(value) => {
+                  const next = (value.length > 0 ? value : ["email"]) as ReminderChannel[];
                   updatePreferences({
                     ...orgPreferences,
-                    reminderChannels: value.length > 0 ? value : ["email"]
-                  })
-                }
-                withinPortal={false}
+                    reminderChannels: next
+                  });
+                }}
                 searchable={false}
                 description={`Reminders currently scheduled: ${milestonesWithReminders.join(", ") || "None yet"}.`}
               />
@@ -475,5 +469,6 @@ export function OrgSettingsForm() {
 
       <OrgInviteManager />
     </Stack>
+    </Paper>
   );
 }

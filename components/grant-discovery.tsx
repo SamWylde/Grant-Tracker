@@ -247,19 +247,14 @@ type FilterGroupProps = {
 
 function FilterGroup({ title, children }: FilterGroupProps) {
   return (
-    <Stack
-      gap="xs"
-      component={Paper}
-      withBorder
-      radius="lg"
-      p="md"
-      variant="surfaceDeep"
-    >
-      <Text size="xs" fw={600} c="dimmed" tt="uppercase">
-        {title}
-      </Text>
-      {children}
-    </Stack>
+    <Paper withBorder radius="lg" p="md" variant="surfaceDeep">
+      <Stack gap="xs">
+        <Text size="xs" fw={600} c="dimmed" tt="uppercase">
+          {title}
+        </Text>
+        {children}
+      </Stack>
+    </Paper>
   );
 }
 

@@ -234,32 +234,31 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
                 </Group>
                 <Stack gap="sm">
                   {(grant.attachments ?? []).map((attachment) => (
-                    <Group
+                    <Paper
                       key={attachment}
-                      justify="space-between"
-                      align="center"
+                      withBorder
+                      variant="surfaceSunken"
                       px="sm"
                       py="xs"
-                  component={Paper}
-                  withBorder
-                  variant="surfaceSunken"
-                  style={{ borderRadius: 12 }}
+                      style={{ borderRadius: 12 }}
                     >
-                      <Anchor href={attachment} target="_blank" rel="noreferrer" size="sm">
-                        {attachment}
-                      </Anchor>
-                      <Button
-                        variant="subtle"
-                        color="red"
-                        size="xs"
-                        onClick={() => {
-                          const filtered = (grant.attachments ?? []).filter((item) => item !== attachment);
-                          updateGrantDetails(grantId, { attachments: filtered });
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </Group>
+                      <Group justify="space-between" align="center">
+                        <Anchor href={attachment} target="_blank" rel="noreferrer" size="sm">
+                          {attachment}
+                        </Anchor>
+                        <Button
+                          variant="subtle"
+                          color="red"
+                          size="xs"
+                          onClick={() => {
+                            const filtered = (grant.attachments ?? []).filter((item) => item !== attachment);
+                            updateGrantDetails(grantId, { attachments: filtered });
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </Group>
+                    </Paper>
                   ))}
                   {(grant.attachments?.length ?? 0) === 0 && (
                     <Text size="xs" c="dimmed">

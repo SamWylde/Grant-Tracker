@@ -1,4 +1,118 @@
-import { Card, createTheme, Paper } from "@mantine/core";
+import { createTheme, type MantineTheme } from "@mantine/core";
+import type { CSSProperties } from "react";
+
+const surfaceVariantStyles = {
+  surfacePrimary: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.primary,
+    borderColor: theme.other.border.default,
+    backdropFilter: "blur(16px)"
+  }),
+  surfacePrimarySoft: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.primarySoft,
+    borderColor: theme.other.border.default,
+    backdropFilter: "blur(16px)"
+  }),
+  surfacePrimaryStrong: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.primaryStrong,
+    borderColor: theme.other.border.default,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceSunken: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.sunken,
+    borderColor: theme.other.border.subtle,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceSunkenStrong: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.sunkenStrong,
+    borderColor: theme.other.border.subtle,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceOverlay: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.overlay,
+    borderColor: theme.other.border.strong,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceBackdrop: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.backdrop,
+    borderColor: theme.other.border.strong,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceOverlayStrong: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.overlayStrong,
+    borderColor: theme.other.border.strong,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceIndigo: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.indigo,
+    borderColor: theme.other.border.default,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceBoard: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.board,
+    borderColor: theme.other.border.default,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceDeep: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.deep,
+    borderColor: theme.other.border.default,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceElevated: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.elevated,
+    borderColor: theme.other.border.default,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceElevatedStrong: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.elevatedStrong,
+    borderColor: theme.other.border.default,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceElevatedSoft: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.elevatedSoft,
+    borderColor: theme.other.border.subtle,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceHighlight: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.highlight,
+    borderColor: theme.other.border.default,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceNavy: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.navy,
+    borderColor: theme.other.border.default,
+    backdropFilter: "blur(16px)"
+  }),
+  surfacePositiveTint: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.positiveTint,
+    borderColor: theme.other.border.positive,
+    backdropFilter: "blur(16px)"
+  }),
+  surfacePositive: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.positive,
+    borderColor: theme.other.border.positive,
+    backdropFilter: "blur(16px)"
+  }),
+  surfaceInfo: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.info,
+    borderColor: theme.other.border.info,
+    backdropFilter: "blur(16px)"
+  }),
+  surfacePurple: (theme: MantineTheme): CSSProperties => ({
+    backgroundColor: theme.other.surface.purple,
+    borderColor: theme.other.border.purple,
+    backdropFilter: "blur(16px)"
+  })
+} as const satisfies Record<string, (theme: MantineTheme) => CSSProperties>;
+
+type SurfaceVariant = keyof typeof surfaceVariantStyles;
+
+function getSurfaceVariantStyles(theme: MantineTheme, variant?: string) {
+  if (variant && variant in surfaceVariantStyles) {
+    const key = variant as SurfaceVariant;
+    return surfaceVariantStyles[key](theme);
+  }
+  return undefined;
+}
 
 export const appTheme = createTheme({
   fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -57,266 +171,26 @@ export const appTheme = createTheme({
     }
   },
   components: {
-    Paper: Paper.extend({
-      variants: {
-        surfacePrimary: (theme) => ({
+    Paper: {
+      styles: (theme: MantineTheme, params: { variant?: string }) => {
+        const variantStyles = getSurfaceVariantStyles(theme, params.variant);
+        return {
           root: {
-            backgroundColor: theme.other.surface.primary,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
+            ...(variantStyles ?? {})
           }
-        }),
-        surfacePrimarySoft: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.primarySoft,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfacePrimaryStrong: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.primaryStrong,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceSunken: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.sunken,
-            borderColor: theme.other.border.subtle,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceSunkenStrong: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.sunkenStrong,
-            borderColor: theme.other.border.subtle,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceOverlay: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.overlay,
-            borderColor: theme.other.border.strong,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceBackdrop: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.backdrop,
-            borderColor: theme.other.border.strong,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceOverlayStrong: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.overlayStrong,
-            borderColor: theme.other.border.strong,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceIndigo: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.indigo,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceBoard: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.board,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceDeep: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.deep,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceElevated: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.elevated,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceElevatedStrong: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.elevatedStrong,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceElevatedSoft: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.elevatedSoft,
-            borderColor: theme.other.border.subtle,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceHighlight: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.highlight,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceNavy: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.navy,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfacePositiveTint: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.positiveTint,
-            borderColor: theme.other.border.positive,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfacePositive: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.positive,
-            borderColor: theme.other.border.positive,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceInfo: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.info,
-            borderColor: theme.other.border.info,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfacePurple: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.purple,
-            borderColor: theme.other.border.purple,
-            backdropFilter: "blur(16px)"
-          }
-        })
+        };
       }
-    }),
-    Card: Card.extend({
-      variants: {
-        surfacePrimary: (theme) => ({
+    },
+    Card: {
+      styles: (theme: MantineTheme, params: { variant?: string }) => {
+        const variantStyles = getSurfaceVariantStyles(theme, params.variant);
+        return {
           root: {
-            backgroundColor: theme.other.surface.primary,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
+            ...(variantStyles ?? {})
           }
-        }),
-        surfacePrimaryStrong: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.primaryStrong,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceSunken: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.sunken,
-            borderColor: theme.other.border.subtle,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceSunkenStrong: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.sunkenStrong,
-            borderColor: theme.other.border.subtle,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceOverlay: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.overlay,
-            borderColor: theme.other.border.strong,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceBackdrop: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.backdrop,
-            borderColor: theme.other.border.strong,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceOverlayStrong: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.overlayStrong,
-            borderColor: theme.other.border.strong,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceIndigo: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.indigo,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceBoard: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.board,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceElevated: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.elevated,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceElevatedStrong: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.elevatedStrong,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceElevatedSoft: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.elevatedSoft,
-            borderColor: theme.other.border.subtle,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceHighlight: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.highlight,
-            borderColor: theme.other.border.default,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfacePositive: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.positive,
-            borderColor: theme.other.border.positive,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfaceInfo: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.info,
-            borderColor: theme.other.border.info,
-            backdropFilter: "blur(16px)"
-          }
-        }),
-        surfacePurple: (theme) => ({
-          root: {
-            backgroundColor: theme.other.surface.purple,
-            borderColor: theme.other.border.purple,
-            backdropFilter: "blur(16px)"
-          }
-        })
+        };
       }
-    })
+    }
   }
 });
 
