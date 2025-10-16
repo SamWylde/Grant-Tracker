@@ -3,6 +3,21 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
+import {
+  Anchor,
+  Badge,
+  Button,
+  Checkbox,
+  Container,
+  Group,
+  Paper,
+  ScrollArea,
+  Stack,
+  Table,
+  Text,
+  Title
+} from "@mantine/core";
+
 import { useAuth } from "@/components/auth-context";
 import { useGrantContext } from "@/components/grant-context";
 
@@ -63,85 +78,94 @@ export default function MyTasksPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-200">
-        Loading your tasks…
-      </div>
+      <Container size="md" py="xl">
+        <Text size="sm" c="dimmed" ta="center">
+          Loading your tasks…
+        </Text>
+      </Container>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-950 text-center text-slate-200">
-        <h1 className="text-2xl font-semibold text-white">Sign in to view &quot;My Tasks&quot;</h1>
-        <p className="max-w-md text-sm text-slate-400">
-          Authenticate with your Supabase account so we can personalize task assignments for you.
-        </p>
-        <Link
-          href="/"
-          className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:border-white/40 hover:text-white"
-        >
-          Return home
-        </Link>
-      </div>
+      <Container size="md" py="xl">
+        <Stack align="center" gap="sm" ta="center">
+          <Title order={3}>Sign in to view “My Tasks”</Title>
+          <Text size="sm" c="dimmed">
+            Authenticate with your Supabase account so we can personalize task assignments for you.
+          </Text>
+          <Button component={Link} href="/" variant="outline" radius="xl">
+            Return home
+          </Button>
+        </Stack>
+      </Container>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 px-6 py-12">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        <header className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold text-white">My upcoming tasks</h1>
-          <p className="text-sm text-slate-300">
+    <Container size="xl" py="xl">
+      <Stack gap="lg">
+        <Stack gap={4}>
+          <Title order={2}>My upcoming tasks</Title>
+          <Text size="sm" c="dimmed">
             Stay ahead of due dates across every grant you&apos;re supporting. Check items off as you complete them.
-          </p>
-        </header>
-        <div className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/60">
-          <table className="min-w-full divide-y divide-white/5 text-left text-sm">
-            <thead className="bg-white/5 text-xs uppercase tracking-wide text-slate-300">
-              <tr>
-                <th className="px-4 py-3 font-medium">Grant</th>
-                <th className="px-4 py-3 font-medium">Task</th>
-                <th className="px-4 py-3 font-medium">Due</th>
-                <th className="px-4 py-3 font-medium">Stage</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 text-slate-200">
-              {assignments.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-sm text-slate-400">
-                    No tasks assigned to you yet. Once teammates add you to a checklist item, it will appear here.
-                  </td>
-                </tr>
-              ) : (
-                assignments.map((task) => (
-                  <tr key={task.taskId} className="transition hover:bg-white/5">
-                    <td className="px-4 py-4 font-medium text-white">
-                      <Link href={`/grants/${encodeURIComponent(task.grantId)}`} className="hover:underline">
-                        {task.grantTitle}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-4">{task.label}</td>
-                    <td className="px-4 py-4">{formatDisplayDate(task.dueDate, timezone)}</td>
-                    <td className="px-4 py-4 text-xs uppercase tracking-wide text-slate-400">{task.stage}</td>
-                    <td className="px-4 py-4">
-                      <label className="inline-flex items-center gap-2 text-xs font-semibold">
-                        <input
-                          type="checkbox"
-                          checked={task.status === "completed"}
-                          onChange={(event) => toggleTaskStatus(task.grantId, task.taskId, event.target.checked)}
-                          className="h-4 w-4 rounded border-white/20 bg-slate-900 text-emerald-500 focus:ring-emerald-400"
-                        />
-                        {task.status === "completed" ? "Completed" : "Pending"}
-                      </label>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+          </Text>
+        </Stack>
+        <Paper withBorder radius="xl" bg="rgba(8,18,40,0.7)">
+          <ScrollArea>
+            <Table highlightOnHover verticalSpacing="sm">
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Grant</Table.Th>
+                  <Table.Th>Task</Table.Th>
+                  <Table.Th>Due</Table.Th>
+                  <Table.Th>Stage</Table.Th>
+                  <Table.Th>Status</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {assignments.length === 0 ? (
+                  <Table.Tr>
+                    <Table.Td colSpan={5}>
+                      <Text size="sm" c="dimmed" ta="center">
+                        No tasks assigned to you yet. Once teammates add you to a checklist item, it will appear here.
+                      </Text>
+                    </Table.Td>
+                  </Table.Tr>
+                ) : (
+                  assignments.map((task) => (
+                    <Table.Tr key={task.taskId}>
+                      <Table.Td>
+                        <Anchor component={Link} href={`/grants/${encodeURIComponent(task.grantId)}`}>
+                          {task.grantTitle}
+                        </Anchor>
+                      </Table.Td>
+                      <Table.Td>{task.label}</Table.Td>
+                      <Table.Td>{formatDisplayDate(task.dueDate, timezone)}</Table.Td>
+                      <Table.Td>
+                        <Badge variant="light" color="midnight">
+                          {task.stage}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td>
+                        <Group gap="sm">
+                          <Checkbox
+                            checked={task.status === "completed"}
+                            onChange={(event) => toggleTaskStatus(task.grantId, task.taskId, event.currentTarget.checked)}
+                          />
+                          <Text size="xs" c={task.status === "completed" ? "teal.3" : "dimmed"}>
+                            {task.status === "completed" ? "Completed" : "Pending"}
+                          </Text>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))
+                )}
+              </Table.Tbody>
+            </Table>
+          </ScrollArea>
+        </Paper>
+      </Stack>
+    </Container>
   );
 }

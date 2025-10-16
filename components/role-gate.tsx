@@ -1,5 +1,7 @@
 "use client";
 
+import { Paper, Text } from "@mantine/core";
+
 import { useAuth, type OrgMembershipRole } from "./auth-context";
 
 export function RoleGate({
@@ -15,9 +17,11 @@ export function RoleGate({
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-300">
-        Checking permissions…
-      </div>
+      <Paper withBorder radius="md" p="md" bg="rgba(8,18,40,0.7)">
+        <Text size="sm" c="dimmed">
+          Checking permissions…
+        </Text>
+      </Paper>
     );
   }
 

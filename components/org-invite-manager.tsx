@@ -2,6 +2,18 @@
 
 import { FormEvent, useMemo, useState } from "react";
 
+import {
+  Badge,
+  Button,
+  Group,
+  Paper,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+  Title
+} from "@mantine/core";
+
 import { RoleGate } from "./role-gate";
 import { useAuth } from "./auth-context";
 
@@ -40,100 +52,105 @@ export function OrgInviteManager() {
     <RoleGate
       role="admin"
       fallback={
-        <div className="rounded-2xl border border-white/5 bg-slate-950/60 p-4 text-sm text-slate-300">
-          Only admins can manage organization invites.
-        </div>
+        <Paper withBorder radius="lg" p="md" bg="rgba(10,24,50,0.6)">
+          <Text size="sm" c="dimmed">
+            Only admins can manage organization invites.
+          </Text>
+        </Paper>
       }
     >
-      <section className="space-y-4">
-        <header>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-300">
-            Invite teammates
-          </h3>
-          <p className="mt-1 text-sm text-slate-400">
+      <Stack gap="lg">
+        <Stack gap={4}>
+          <Title order={4}>Invite teammates</Title>
+          <Text size="sm" c="dimmed">
             Send an email invite so teammates can join {membership?.org?.name ?? "your organization"}.
-          </p>
-        </header>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-          <div className="grid gap-3 md:grid-cols-[2fr,1fr]">
-            <label className="flex flex-col text-sm font-medium text-slate-200">
-              Email
-              <input
+          </Text>
+        </Stack>
+        <Paper component="form" withBorder radius="lg" p="lg" bg="rgba(10,24,50,0.6)" onSubmit={handleSubmit}>
+          <Stack gap="md">
+            <Group gap="md" grow align="flex-end">
+              <TextInput
+                label="Email"
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="mt-2 rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
+                onChange={(event) => setEmail(event.currentTarget.value)}
                 placeholder="teammate@nonprofit.org"
                 required
               />
-            </label>
-            <label className="flex flex-col text-sm font-medium text-slate-200">
-              Role
-              <select
+              <Select
+                label="Role"
+                data={ROLE_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
                 value={role}
-                onChange={(event) => setRole(event.target.value as typeof role)}
-                className="mt-2 rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
-              >
-                {ROLE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-            <button
-              type="submit"
-              className="rounded-lg bg-emerald-500/10 px-4 py-2 font-semibold text-emerald-200 transition hover:bg-emerald-500/20 hover:text-white"
-            >
-              Send invite
-            </button>
-            {status && <p className="text-xs text-slate-400">{status}</p>}
-          </div>
-        </form>
-        <div className="rounded-2xl border border-white/10 bg-slate-950/50">
-          <header className="flex items-center justify-between border-b border-white/10 px-4 py-3 text-sm font-semibold text-slate-200">
-            <span>Pending invites</span>
-            <span>{activeInvites.length}</span>
-          </header>
-          <ul className="divide-y divide-white/5">
+                onChange={(value) => setRole((value as typeof role) ?? "contributor")}
+              />
+            </Group>
+            <Group justify="space-between" align="center">
+              <Button type="submit" size="sm" radius="md">
+                Send invite
+              </Button>
+              {status && (
+                <Text size="xs" c="dimmed">
+                  {status}
+                </Text>
+              )}
+            </Group>
+          </Stack>
+        </Paper>
+        <Paper withBorder radius="lg" bg="rgba(10,24,50,0.6)">
+          <Group justify="space-between" align="center" px="lg" py="sm">
+            <Text size="sm" fw={600}>
+              Pending invites
+            </Text>
+            <Badge variant="light" color="midnight">
+              {activeInvites.length}
+            </Badge>
+          </Group>
+          <Stack gap={0}>
             {activeInvites.length === 0 ? (
-              <li className="px-4 py-5 text-sm text-slate-400">No outstanding invites.</li>
+              <Text px="lg" py="md" size="sm" c="dimmed">
+                No outstanding invites.
+              </Text>
             ) : (
               activeInvites.map((invite) => (
-                <li key={invite.id} className="flex flex-col gap-2 px-4 py-4 text-sm text-slate-200 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="font-medium text-white">{invite.email}</p>
-                    <p className="text-xs text-slate-400">
+                <Group
+                  key={invite.id}
+                  justify="space-between"
+                  align="flex-start"
+                  px="lg"
+                  py="md"
+                  style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+                  wrap="nowrap"
+                >
+                  <Stack gap={4}>
+                    <Text fw={600}>{invite.email}</Text>
+                    <Text size="xs" c="dimmed">
                       Role: {invite.role} • Invited by {invite.invitedBy || user?.email || "unknown"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs">
+                    </Text>
                     {invite.token && (
-                      <code className="rounded bg-slate-900 px-2 py-1 font-mono text-[11px] text-slate-300">
-                        {invite.token}
-                      </code>
+                      <Text size="xs" c="dimmed" fw={500}>
+                        Token: {invite.token}
+                      </Text>
                     )}
-                    <button
-                      onClick={async () => {
-                        const result = await revokeInvite(invite.id);
-                        if (result.error) {
-                          setStatus(result.error);
-                        }
-                      }}
-                      type="button"
-                      className="rounded-lg border border-white/15 px-3 py-1 font-semibold text-slate-200 transition hover:border-rose-400 hover:text-white"
-                    >
-                      Revoke
-                    </button>
-                  </div>
-                </li>
+                  </Stack>
+                  <Button
+                    variant="outline"
+                    color="red"
+                    size="xs"
+                    onClick={async () => {
+                      const result = await revokeInvite(invite.id);
+                      if (result.error) {
+                        setStatus(result.error);
+                      }
+                    }}
+                  >
+                    Revoke
+                  </Button>
+                </Group>
               ))
             )}
-          </ul>
-        </div>
-      </section>
+          </Stack>
+        </Paper>
+      </Stack>
     </RoleGate>
   );
 }
