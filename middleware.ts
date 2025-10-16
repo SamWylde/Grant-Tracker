@@ -9,6 +9,12 @@ export async function middleware(request: NextRequest) {
   }
 
   const response = NextResponse.next();
+  const attachMiddlewareCookies = <T extends NextResponse>(target: T): T => {
+    for (const cookie of response.cookies.getAll()) {
+      target.cookies.set(cookie);
+    }
+    return target;
+  };
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -16,7 +22,7 @@ export async function middleware(request: NextRequest) {
     console.error("Missing Supabase public credentials. Admin middleware cannot validate sessions.");
     const redirectUrl = new URL("/login", request.url);
     redirectUrl.searchParams.set("error", "supabase_not_configured");
-    return NextResponse.redirect(redirectUrl);
+    return attachMiddlewareCookies(NextResponse.redirect(redirectUrl));
   }
 
   const supabase = createMiddlewareClient({ req: request, res: response }, {
@@ -28,6 +34,11 @@ export async function middleware(request: NextRequest) {
   const userAgent = request.headers.get("user-agent") ?? null;
   await supabase.auth.getUser();
 
+  const authorizationCookieHeader = buildAuthorizationCookieHeader(
+    request.headers.get("cookie"),
+    response.cookies.getAll()
+  );
+
   let authorizationResult: { authorized?: boolean; reason?: string } = {};
 
   try {
@@ -35,7 +46,7 @@ export async function middleware(request: NextRequest) {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        cookie: request.headers.get("cookie") ?? ""
+        ...(authorizationCookieHeader ? { cookie: authorizationCookieHeader } : {})
       },
       body: JSON.stringify({
         path: pathname,
@@ -67,30 +78,30 @@ export async function middleware(request: NextRequest) {
       const redirectTo = pathname + (searchParams.toString() ? `?${searchParams}` : "");
       redirectUrl.searchParams.set("redirect_to", redirectTo);
       redirectUrl.searchParams.set("error", "admin_auth_required");
-      return NextResponse.redirect(redirectUrl);
+      return attachMiddlewareCookies(NextResponse.redirect(redirectUrl));
     }
 
     if (reason === "admin_disabled") {
       const redirectUrl = new URL("/dashboard", request.url);
       redirectUrl.searchParams.set("error", "admin_disabled");
-      return NextResponse.redirect(redirectUrl);
+      return attachMiddlewareCookies(NextResponse.redirect(redirectUrl));
     }
 
     if (reason === "supabase_not_configured") {
       const redirectUrl = new URL("/login", request.url);
       redirectUrl.searchParams.set("error", "supabase_not_configured");
-      return NextResponse.redirect(redirectUrl);
+      return attachMiddlewareCookies(NextResponse.redirect(redirectUrl));
     }
 
     if (reason === "insufficient_role") {
       const redirectUrl = new URL("/dashboard", request.url);
       redirectUrl.searchParams.set("error", "admin_access_required");
-      return NextResponse.redirect(redirectUrl);
+      return attachMiddlewareCookies(NextResponse.redirect(redirectUrl));
     }
 
     const redirectUrl = new URL("/dashboard", request.url);
     redirectUrl.searchParams.set("error", "admin_verification_failed");
-    return NextResponse.redirect(redirectUrl);
+    return attachMiddlewareCookies(NextResponse.redirect(redirectUrl));
   }
 
   const sessionTimeoutMinutes = Number(process.env.ADMIN_SESSION_TIMEOUT_MINUTES ?? 30);
@@ -103,7 +114,7 @@ export async function middleware(request: NextRequest) {
         if (elapsed > sessionTimeoutMinutes * 60 * 1000) {
           const redirectUrl = new URL("/login", request.url);
           redirectUrl.searchParams.set("error", "admin_session_expired");
-          return NextResponse.redirect(redirectUrl);
+          return attachMiddlewareCookies(NextResponse.redirect(redirectUrl));
         }
       }
     }
@@ -121,3 +132,39 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/admin/:path*"]
 };
+
+function buildAuthorizationCookieHeader(
+  originalCookieHeader: string | null,
+  responseCookies: Array<{ name: string; value: string }>
+): string | null {
+  const cookieMap = new Map<string, string>();
+
+  if (originalCookieHeader) {
+    for (const part of originalCookieHeader.split(/;\s*/)) {
+      if (!part) {
+        continue;
+      }
+      const separatorIndex = part.indexOf("=");
+      if (separatorIndex === -1) {
+        continue;
+      }
+      const name = part.slice(0, separatorIndex).trim();
+      const value = part.slice(separatorIndex + 1);
+      if (name) {
+        cookieMap.set(name, value);
+      }
+    }
+  }
+
+  for (const cookie of responseCookies) {
+    cookieMap.set(cookie.name, cookie.value);
+  }
+
+  if (cookieMap.size === 0) {
+    return null;
+  }
+
+  return Array.from(cookieMap.entries())
+    .map(([name, value]) => `${name}=${value}`)
+    .join("; ");
+}
