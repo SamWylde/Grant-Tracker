@@ -173,51 +173,45 @@ export function ManualGrantForm() {
           autosize
           minRows={3}
         />
-        <Stack
-          gap="md"
-          component={Paper}
-          withBorder
-          radius="lg"
-          p="lg"
-          variant="surfaceIndigo"
-        >
-          <Stack gap={4}>
-            <Text fw={600}>Checklist tasks</Text>
-            <Text size="xs" c="dimmed">
-              Break the work down and assign it immediately. Leave blank if you&apos;ll create tasks later.
-            </Text>
-          </Stack>
-          {tasks.length === 0 && (
-            <Text size="xs" c="dimmed">
-              No tasks yet. Add your first item below.
-            </Text>
-          )}
-          <Stack gap="sm">
-            {tasks.map((task, index) => (
-              <Paper key={`task-${index}`} withBorder radius="md" p="md" variant="surfaceSunken">
-                <Grid gutter="md" align="center">
-                  <Grid.Col span={{ base: 12, md: 6 }}>
-                    <TextInput
-                      label="Task label"
-                      value={task.label}
-                      onChange={(event) => {
-                        const value = event.currentTarget.value;
-                        setTasks((prev) => prev.map((item, taskIndex) => (taskIndex === index ? { ...item, label: value } : item)));
-                      }}
-                      placeholder="Draft narrative"
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, sm: 3 }}>
-                    <TextInput
-                      label="Due date"
-                      type="date"
-                      value={task.dueDate}
-                      onChange={(event) => {
-                        const value = event.currentTarget.value;
-                        setTasks((prev) => prev.map((item, taskIndex) => (taskIndex === index ? { ...item, dueDate: value } : item)));
-                      }}
-                    />
-                  </Grid.Col>
+        <Paper withBorder radius="lg" p="lg" variant="surfaceIndigo">
+          <Stack gap="md">
+            <Stack gap={4}>
+              <Text fw={600}>Checklist tasks</Text>
+              <Text size="xs" c="dimmed">
+                Break the work down and assign it immediately. Leave blank if you&apos;ll create tasks later.
+              </Text>
+            </Stack>
+            {tasks.length === 0 && (
+              <Text size="xs" c="dimmed">
+                No tasks yet. Add your first item below.
+              </Text>
+            )}
+            <Stack gap="sm">
+              {tasks.map((task, index) => (
+                <Paper key={`task-${index}`} withBorder radius="md" p="md" variant="surfaceSunken">
+                  <Grid gutter="md" align="center">
+                    <Grid.Col span={{ base: 12, md: 6 }}>
+                      <TextInput
+                        label="Task label"
+                        value={task.label}
+                        onChange={(event) => {
+                          const value = event.currentTarget.value;
+                          setTasks((prev) => prev.map((item, taskIndex) => (taskIndex === index ? { ...item, label: value } : item)));
+                        }}
+                        placeholder="Draft narrative"
+                      />
+                    </Grid.Col>
+                    <Grid.Col span={{ base: 12, sm: 3 }}>
+                      <TextInput
+                        label="Due date"
+                        type="date"
+                        value={task.dueDate}
+                        onChange={(event) => {
+                          const value = event.currentTarget.value;
+                          setTasks((prev) => prev.map((item, taskIndex) => (taskIndex === index ? { ...item, dueDate: value } : item)));
+                        }}
+                      />
+                    </Grid.Col>
                   <Grid.Col span={{ base: 11, sm: 3 }}>
                     <TextInput
                       label="Assignee email"
@@ -246,15 +240,16 @@ export function ManualGrantForm() {
               </Paper>
             ))}
           </Stack>
-          <Button
-            variant="outline"
-            size="sm"
-            leftSection={<IconPlus size="1rem" />}
-            onClick={addEmptyTask}
-          >
-            Add task
-          </Button>
-        </Stack>
+            <Button
+              variant="outline"
+              size="sm"
+              leftSection={<IconPlus size="1rem" />}
+              onClick={addEmptyTask}
+            >
+              Add task
+            </Button>
+          </Stack>
+        </Paper>
         <Group justify="space-between" align="center">
           <Button type="submit">Save grant</Button>
           <Stack gap={2} align="flex-end" miw={180}>
