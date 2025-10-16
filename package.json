@@ -11,11 +11,12 @@
   "dependencies": {
     "@headlessui/react": "^1.7.19",
     "@heroicons/react": "^2.1.5",
-    "@supabase/supabase-js": "^2.45.4",
+    "@supabase/supabase-js": "^2.75.0",
     "clsx": "^2.1.0",
     "next": "14.1.0",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "stripe": "^14.19.0"
   },
   "devDependencies": {
     "@types/node": "20.11.0",
@@ -27,5 +28,14 @@
     "postcss": "8.4.32",
     "tailwindcss": "3.4.1",
     "typescript": "5.3.3"
-  }
+  },
+  "description": "*A lightweight SaaS for small and rural nonprofits to **discover** grants, **track** applications, and **never miss deadlines**.*",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
 }
