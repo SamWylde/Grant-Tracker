@@ -7,8 +7,25 @@ import { MemoryRateLimiter } from "@/lib/admin/rate-limit";
 
 export const runtime = "nodejs";
 
-const DEFAULT_RATE_LIMIT = Number(process.env.ADMIN_RATE_LIMIT_QUERIES_PER_HOUR ?? 100);
-const rateLimiter = new MemoryRateLimiter({ limit: DEFAULT_RATE_LIMIT, windowMs: 60 * 60 * 1000 });
+const DEFAULT_RATE_LIMIT = 100;
+
+function resolveRateLimit() {
+  const raw = process.env.ADMIN_RATE_LIMIT_QUERIES_PER_HOUR;
+
+  if (!raw) {
+    return DEFAULT_RATE_LIMIT;
+  }
+
+  const parsed = Number.parseInt(raw, 10);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_RATE_LIMIT;
+  }
+
+  return parsed;
+}
+
+const rateLimiter = new MemoryRateLimiter({ limit: resolveRateLimit(), windowMs: 60 * 60 * 1000 });
 
 function extractRequestMetadata(request: Request) {
   const forwarded = request.headers.get("x-forwarded-for");
