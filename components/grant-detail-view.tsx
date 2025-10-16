@@ -99,7 +99,7 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
       <Grid gutter="xl">
         <Grid.Col span={{ base: 12, lg: 8 }}>
           <Stack gap="lg">
-            <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+            <Paper withBorder radius="xl" p="xl" variant="surfacePrimary">
               <Stack gap="md">
                 <Title order={3}>Pipeline settings</Title>
                 <Grid gutter="md">
@@ -145,7 +145,7 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
               </Stack>
             </Paper>
 
-            <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+            <Paper withBorder radius="xl" p="xl" variant="surfacePrimary">
               <Stack gap="md">
                 <Title order={3}>Deadline management & reminders</Title>
                 <Text size="sm" c="dimmed">
@@ -170,7 +170,7 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
                   withBorder
                   radius="lg"
                   p="md"
-                  bg="rgba(6,14,32,0.6)"
+                  variant="surfaceSunken"
                   onSubmit={(event) => {
                     event.preventDefault();
                     const trimmed = newMilestoneLabel.trim();
@@ -201,7 +201,7 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
 
             <TaskChecklist grantId={grantId} />
 
-            <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+            <Paper withBorder radius="xl" p="xl" variant="surfacePrimary">
               <Stack gap="md">
                 <Title order={3}>Attachments & links</Title>
                 <Text size="sm" c="dimmed">
@@ -240,8 +240,10 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
                       align="center"
                       px="sm"
                       py="xs"
-                      bg="rgba(6,14,32,0.6)"
-                      style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)" }}
+                  component={Paper}
+                  withBorder
+                  variant="surfaceSunken"
+                  style={{ borderRadius: 12 }}
                     >
                       <Anchor href={attachment} target="_blank" rel="noreferrer" size="sm">
                         {attachment}
@@ -271,7 +273,7 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
         </Grid.Col>
         <Grid.Col span={{ base: 12, lg: 4 }}>
           <Stack gap="lg">
-            <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+            <Paper withBorder radius="xl" p="xl" variant="surfacePrimary">
               <Title order={4}>Key facts</Title>
               <Stack gap="sm" mt="sm">
                 <Fact label="Opportunity #" value={grant.opportunityNumber} />
@@ -304,7 +306,7 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
                 View opportunity on Grants.gov
               </Button>
             </Paper>
-            <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+            <Paper withBorder radius="xl" p="xl" variant="surfacePrimary">
               <Title order={4}>Stage history</Title>
               <Stack gap="sm" mt="sm">
                 {history.length === 0 && (
@@ -313,7 +315,13 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
                   </Text>
                 )}
                 {history.map((entry, index) => (
-                  <Card key={`${entry.stage}-${index}`} withBorder radius="md" bg="rgba(6,14,32,0.6)" padding="md">
+                  <Card
+                    key={`${entry.stage}-${index}`}
+                    withBorder
+                    radius="md"
+                    padding="md"
+                    variant="surfaceSunken"
+                  >
                     <Stack gap={4}>
                       <Badge size="xs" variant="light" color="midnight">
                         {entry.stage}
@@ -359,7 +367,7 @@ function MilestoneEditor({
 }: MilestoneEditorProps) {
   const channelOptions: Milestone["reminderChannels"] = ["email", "sms"];
   return (
-    <Paper withBorder radius="lg" p="lg" bg="rgba(6,14,32,0.6)">
+    <Paper withBorder radius="lg" p="lg" variant="surfaceSunken">
       <Stack gap="md">
         <Group justify="space-between" align="flex-start">
           <Stack gap={2}>
@@ -394,7 +402,14 @@ function MilestoneEditor({
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, sm: 6 }}>
-            <Group justify="space-between" align="center" p="md" bg="rgba(2,10,28,0.7)" style={{ borderRadius: 12 }}>
+            <Paper
+              component={Group}
+              justify="space-between"
+              align="center"
+              p="md"
+              variant="surfaceOverlay"
+              style={{ borderRadius: 12 }}
+            >
               <Stack gap={2}>
                 <Text size="xs" fw={600} tt="uppercase">
                   Reminders
@@ -417,7 +432,7 @@ function MilestoneEditor({
                   })
                 }
               />
-            </Group>
+            </Paper>
           </Grid.Col>
         </Grid>
         <Group gap="xs" wrap="wrap">
@@ -457,7 +472,7 @@ function MilestoneEditor({
                   withBorder
                   radius="md"
                   p="sm"
-                  bg="rgba(2,10,28,0.8)"
+                  variant="surfaceOverlayStrong"
                 >
                   <Group justify="space-between" align="center">
                     <Text size="xs" fw={600}>
@@ -482,7 +497,7 @@ function MilestoneEditor({
               ))}
             </Stack>
           ) : (
-            <Paper withBorder radius="md" p="md" bg="rgba(2,10,28,0.7)">
+            <Paper withBorder radius="md" p="md" variant="surfaceOverlay">
               <Text size="xs" c="dimmed">
                 {milestone.dueDate
                   ? "Enable reminders to automatically queue notifications."

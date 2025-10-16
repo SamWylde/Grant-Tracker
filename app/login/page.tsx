@@ -26,7 +26,7 @@ export default function LoginPage() {
 
   return (
     <Stack align="center" justify="center" py="xl" mx="auto" maw={420}>
-      <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+      <Paper withBorder radius="xl" p="xl" variant="surfacePrimary">
         <Stack gap="md" align="center" ta="center">
           <Title order={2}>Sign in to Grant Tracker</Title>
           <Text size="sm" c="dimmed">
@@ -54,7 +54,14 @@ export default function LoginPage() {
               </Group>
             </Stack>
           ) : (
-            <Paper component="form" withBorder radius="lg" p="md" bg="rgba(6,14,32,0.6)" onSubmit={handleSubmit}>
+            <Paper
+              component="form"
+              withBorder
+              radius="lg"
+              p="md"
+              variant="surfaceSunken"
+              onSubmit={handleSubmit}
+            >
               <Stack gap="sm">
                 <TextInput
                   label="Email"

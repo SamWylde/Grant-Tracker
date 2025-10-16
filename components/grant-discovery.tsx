@@ -108,7 +108,7 @@ export function GrantDiscovery() {
   const savedGrantIds = useMemo(() => new Set(Object.keys(savedGrants)), [savedGrants]);
 
   return (
-    <Paper withBorder radius="xl" p="xl" bg="rgba(8, 17, 40, 0.65)">
+    <Paper withBorder radius="xl" p="xl" variant="surfacePrimarySoft">
       <Stack gap="lg">
         <Group justify="space-between" align="flex-start">
           <Stack gap={4}>
@@ -215,7 +215,7 @@ export function GrantDiscovery() {
           <Grid.Col span={{ base: 12, lg: 8 }}>
             <Stack gap="md">
               {prioritizedGrants.length === 0 && (
-                <Card withBorder radius="lg" bg="rgba(10, 25, 50, 0.6)" padding="xl">
+                <Card withBorder radius="lg" padding="xl" variant="surfaceIndigo">
                   <Text size="sm" c="dimmed">
                     No grants match your filters yet. Try broadening your due date range or removing focus areas.
                   </Text>
@@ -247,7 +247,14 @@ type FilterGroupProps = {
 
 function FilterGroup({ title, children }: FilterGroupProps) {
   return (
-    <Stack gap="xs" component={Paper} withBorder radius="lg" p="md" bg="rgba(12, 24, 50, 0.6)">
+    <Stack
+      gap="xs"
+      component={Paper}
+      withBorder
+      radius="lg"
+      p="md"
+      variant="surfaceDeep"
+    >
       <Text size="xs" fw={600} c="dimmed" tt="uppercase">
         {title}
       </Text>
@@ -268,7 +275,7 @@ function GrantCard({ grant, isSaved, onToggle }: GrantCardProps) {
   const focusAreas = grant.focusAreas.length > 0 ? grant.focusAreas : ["General"];
 
   return (
-    <Paper withBorder radius="xl" p="lg" bg="rgba(8, 17, 40, 0.7)">
+    <Paper withBorder radius="xl" p="lg" variant="surfacePrimary">
       <Stack gap="md">
         <Group justify="space-between" align="flex-start">
           <Stack gap={4}>

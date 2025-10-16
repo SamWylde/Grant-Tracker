@@ -114,7 +114,14 @@ export function OrgSettingsForm() {
   }, [savedGrants]);
 
   return (
-    <Stack gap="xl" component={Paper} withBorder radius="xl" p="xl" bg="rgba(8, 18, 40, 0.7)">
+    <Stack
+      gap="xl"
+      component={Paper}
+      withBorder
+      radius="xl"
+      p="xl"
+      variant="surfacePrimary"
+    >
       <Stack gap="sm">
         <Title order={3}>Org onboarding defaults</Title>
         <Text size="sm" c="dimmed">
@@ -201,7 +208,7 @@ export function OrgSettingsForm() {
 
       <Grid gutter="xl">
         <Grid.Col span={{ base: 12, lg: 6 }}>
-          <Paper withBorder radius="lg" p="lg" bg="rgba(12, 24, 50, 0.65)">
+          <Paper withBorder radius="lg" p="lg" variant="surfaceDeep">
             <Stack gap="md">
               <Group gap="xs">
                 <IconCalendarCog size="1.1rem" />
@@ -247,7 +254,7 @@ export function OrgSettingsForm() {
           </Paper>
         </Grid.Col>
         <Grid.Col span={{ base: 12, lg: 6 }}>
-          <Paper withBorder radius="lg" p="lg" bg="rgba(12, 24, 50, 0.65)">
+          <Paper withBorder radius="lg" p="lg" variant="surfaceDeep">
             <Stack gap="md">
               <Group gap="xs">
                 <IconCalendarCog size="1.1rem" />
@@ -257,7 +264,7 @@ export function OrgSettingsForm() {
                 <Text size="xs" c="dimmed" fw={600} tt="uppercase">
                   Secure ICS feed
                 </Text>
-                <Paper radius="sm" p="sm" withBorder bg="rgba(6,14,32,0.7)">
+                <Paper radius="sm" p="sm" withBorder variant="surfaceSunkenStrong">
                   <Text size="xs" style={{ wordBreak: "break-all" }}>
                     {icsFeedUrl}
                   </Text>

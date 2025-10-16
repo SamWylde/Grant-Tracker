@@ -101,7 +101,7 @@ export function TaskChecklist({ grantId }: { grantId: string }) {
   }
 
   return (
-    <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+    <Paper withBorder radius="xl" p="xl" variant="surfacePrimary">
       <Stack gap="lg">
         <Stack gap={4}>
           <Title order={3}>Task checklist</Title>
@@ -114,7 +114,7 @@ export function TaskChecklist({ grantId }: { grantId: string }) {
           withBorder
           radius="lg"
           p="md"
-          bg="rgba(6,14,32,0.6)"
+          variant="surfaceSunken"
           onSubmit={handleAddTask}
         >
           <Stack gap="sm">
@@ -158,7 +158,7 @@ export function TaskChecklist({ grantId }: { grantId: string }) {
             </Text>
           ) : (
             tasks.map((task) => (
-              <Paper key={task.id} withBorder radius="lg" p="md" bg="rgba(6,14,32,0.6)">
+              <Paper key={task.id} withBorder radius="lg" p="md" variant="surfaceSunken">
                 <Stack gap="sm">
                   <Group align="flex-start" gap="md">
                     <Checkbox

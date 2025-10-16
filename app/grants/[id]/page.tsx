@@ -17,7 +17,7 @@ export default function GrantDetailPage({
       <RoleGate
         role="contributor"
         fallback={
-          <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+          <Paper withBorder radius="xl" p="xl" variant="surfacePrimary">
             <Stack align="center" gap="sm" ta="center">
               <Title order={3}>Access requires a grant workspace seat</Title>
               <Text size="sm" c="dimmed">
