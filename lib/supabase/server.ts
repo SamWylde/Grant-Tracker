@@ -1,5 +1,6 @@
-import { headers } from "next/headers";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { cookies, headers } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type ServerClient = SupabaseClient;
 
@@ -24,14 +25,21 @@ function resolveServerConfig() {
 
 export function getSupabaseServerClient(): ServerClient {
   const { url, key } = resolveServerConfig();
-  return createClient(url, key, {
+  const cookieStore = cookies();
+  return createServerClient(url, key, {
     auth: {
       persistSession: false,
-      autoRefreshToken: false
+      autoRefreshToken: false,
+      detectSessionInUrl: false
     },
     global: {
       headers: {
         ...Object.fromEntries(headers().entries())
+      }
+    },
+    cookies: {
+      get(name) {
+        return cookieStore.get(name)?.value;
       }
     }
   });
