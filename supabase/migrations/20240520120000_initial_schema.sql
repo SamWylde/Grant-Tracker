@@ -8,7 +8,7 @@ create table if not exists public.orgs (
   name text not null,
   slug text unique,
   timezone text not null default 'UTC',
-  calendar_ics_secret text not null default encode(gen_random_bytes(24), 'hex'),
+  calendar_ics_secret text not null default encode(extensions.gen_random_bytes(24), 'hex'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -127,7 +127,7 @@ create table if not exists public.org_invites (
   org_id uuid not null references public.orgs(id) on delete cascade,
   email text not null,
   role text not null default 'contributor' check (role in ('admin','contributor')),
-  token text not null unique default encode(gen_random_bytes(24), 'hex'),
+  token text not null unique default encode(extensions.gen_random_bytes(24), 'hex'),
   status text not null default 'invited' check (status in ('invited','accepted','revoked','expired')),
   accepted_at timestamptz,
   revoked_at timestamptz,
