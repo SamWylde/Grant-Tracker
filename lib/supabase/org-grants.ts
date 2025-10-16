@@ -8,18 +8,6 @@ import type {
 } from "@/components/grant-context";
 import { getSupabaseServerClient, isSupabaseServerConfigured } from "./server";
 
-function applyAbortSignal<T>(query: T, signal?: AbortSignal): T {
-  if (
-    signal &&
-    query &&
-    typeof query === "object" &&
-    typeof (query as { abortSignal?: (signal: AbortSignal) => T }).abortSignal === "function"
-  ) {
-    return (query as unknown as { abortSignal: (signal: AbortSignal) => T }).abortSignal(signal);
-  }
-  return query;
-}
-
 type StageHistoryRow = {
   stage: Stage;
   changed_at?: string;
@@ -64,10 +52,6 @@ function getDefaultOrgId() {
   }
   return orgId;
 }
-
-type SupabaseOptions = {
-  signal?: AbortSignal;
-};
 
 function mapRowToSavedGrant(row: OrgGrantRow): SavedGrant {
   const history = (row.history ?? []).map((entry: StageHistoryRow) => {
@@ -168,16 +152,13 @@ function isOrgGrantRow(value: unknown): value is OrgGrantRow {
   return typeof candidate.id === "string" && typeof candidate.org_id === "string";
 }
 
-export async function fetchOrgGrants(
-  orgId?: string,
-  options: SupabaseOptions = {}
-): Promise<SavedGrant[]> {
+export async function fetchOrgGrants(orgId?: string): Promise<SavedGrant[]> {
   if (!isSupabaseServerConfigured()) {
     return [];
   }
   const resolvedOrgId = orgId ?? getDefaultOrgId();
   const client = getSupabaseServerClient();
-  let query = client
+  const query = client
     .from("org_grants")
     .select(
       [
@@ -214,8 +195,6 @@ export async function fetchOrgGrants(
     .eq("org_id", resolvedOrgId)
     .order("updated_at", { ascending: false });
 
-  query = applyAbortSignal(query, options.signal);
-
   const { data, error } = await query;
 
   if (error) {
@@ -235,41 +214,30 @@ export async function fetchOrgGrants(
   return rows.map((row) => mapRowToSavedGrant(row));
 }
 
-export async function upsertOrgGrant(
-  grant: SavedGrant,
-  orgId?: string,
-  options: SupabaseOptions = {}
-) {
+export async function upsertOrgGrant(grant: SavedGrant, orgId?: string) {
   if (!isSupabaseServerConfigured()) {
     return;
   }
   const resolvedOrgId = orgId ?? getDefaultOrgId();
   const client = getSupabaseServerClient();
   const payload = mapSavedGrantToRow(grant, resolvedOrgId);
-  let query = client.from("org_grants").upsert(payload, { onConflict: "id" });
-  query = applyAbortSignal(query, options.signal);
-  const { error } = await query;
+  const { error } = await client.from("org_grants").upsert(payload, { onConflict: "id" });
   if (error) {
     throw new Error(`Failed to persist org grant ${grant.id}: ${error.message}`);
   }
 }
 
-export async function deleteOrgGrant(
-  grantId: string,
-  orgId?: string,
-  options: SupabaseOptions = {}
-) {
+export async function deleteOrgGrant(grantId: string, orgId?: string) {
   if (!isSupabaseServerConfigured()) {
     return;
   }
   const resolvedOrgId = orgId ?? getDefaultOrgId();
   const client = getSupabaseServerClient();
-  let query = client
+  const query = client
     .from("org_grants")
     .delete()
     .eq("org_id", resolvedOrgId)
     .eq("id", grantId);
-  query = applyAbortSignal(query, options.signal);
   const { error } = await query;
   if (error) {
     throw new Error(`Failed to remove org grant ${grantId}: ${error.message}`);

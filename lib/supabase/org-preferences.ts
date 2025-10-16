@@ -3,18 +3,6 @@
 import type { OrgPreferences } from "@/components/grant-context";
 import { getSupabaseServerClient, isSupabaseServerConfigured } from "./server";
 
-function applyAbortSignal<T>(query: T, signal?: AbortSignal): T {
-  if (
-    signal &&
-    query &&
-    typeof query === "object" &&
-    typeof (query as { abortSignal?: (signal: AbortSignal) => T }).abortSignal === "function"
-  ) {
-    return (query as unknown as { abortSignal: (signal: AbortSignal) => T }).abortSignal(signal);
-  }
-  return query;
-}
-
 type OrgPreferencesRow = {
   org_id: string;
   states: string[] | null;
@@ -30,10 +18,6 @@ type OrgPreferencesRow = {
 const DEFAULT_ORG_ID =
   process.env.SUPABASE_ORG_ID ?? process.env.NEXT_PUBLIC_SUPABASE_ORG_ID ?? "demo-org";
 
-type SupabaseOptions = {
-  signal?: AbortSignal;
-};
-
 function isOrgPreferencesRow(value: unknown): value is OrgPreferencesRow {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<OrgPreferencesRow>;
@@ -41,14 +25,13 @@ function isOrgPreferencesRow(value: unknown): value is OrgPreferencesRow {
 }
 
 export async function fetchOrgPreferences(
-  orgId: string = DEFAULT_ORG_ID,
-  options: SupabaseOptions = {}
+  orgId: string = DEFAULT_ORG_ID
 ): Promise<Partial<OrgPreferences> | null> {
   if (!isSupabaseServerConfigured()) {
     return null;
   }
   const client = getSupabaseServerClient();
-  let query = client
+  const query = client
     .from("org_preferences")
     .select(
       [
@@ -65,8 +48,6 @@ export async function fetchOrgPreferences(
     )
     .eq("org_id", orgId)
     .maybeSingle();
-
-  query = applyAbortSignal(query, options.signal);
 
   const { data, error } = await query;
 

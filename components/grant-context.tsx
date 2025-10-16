@@ -983,7 +983,6 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
   );
 
   useEffect(() => {
-    const controller = new AbortController();
     let active = true;
 
     async function hydrate() {
@@ -991,10 +990,10 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
       setHydrationError(null);
       try {
         const [grants, preferencePatch] = await Promise.all([
-          fetchOrgGrants(undefined, { signal: controller.signal }),
-          fetchOrgPreferences(undefined, { signal: controller.signal })
+          fetchOrgGrants(),
+          fetchOrgPreferences()
         ]);
-        if (!active || controller.signal.aborted) return;
+        if (!active) return;
 
         let resolvedPreferences = orgPreferencesRef.current;
         if (preferencePatch) {
@@ -1024,7 +1023,7 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
           void syncPendingGrants(ids);
         }
       } catch (error) {
-        if (controller.signal.aborted) return;
+        if (!active) return;
         const message = buildErrorMessage(
           "Failed to hydrate workspace data from Supabase",
           error
@@ -1039,7 +1038,6 @@ export function GrantProvider({ initialGrants, children }: GrantProviderProps) {
 
     return () => {
       active = false;
-      controller.abort();
     };
   }, [dispatch, syncPendingGrants]);
 
