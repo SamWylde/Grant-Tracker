@@ -1,24 +1,22 @@
 name: Supabase Migrations
 
 on:
-  workflow_dispatch:       # lets you run it by hand from the Actions tab
+  workflow_dispatch:
   push:
     paths:
-      - "supabase/migrations/**"   # auto-run when migrations change
+      - "supabase/migrations/**"
 
 jobs:
   push:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Supabase CLI
-        run: |
-          curl -fsSL https://cli.supabase.com/install | sh
-          echo "$HOME/.supabase/bin" >> $GITHUB_PATH
+      # ✅ Install & add CLI to PATH automatically
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest   # or pin a version like "2.51.0"
 
       - name: Login and link
         env:
