@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import config from "@/config/grants-gov.json";
 import { GrantsGovClient } from "@/lib/grants-gov/client";
 import { mapOpportunityToRecord } from "@/lib/grants-gov/mapper";
-import type { GrantRecord } from "@/lib/grants-gov/types";
+import type { GrantRecord, GrantsGovOpportunitySummary } from "@/lib/grants-gov/types";
 import { GrantsRepository } from "@/lib/supabase/grants-repository";
 
 export const runtime = "nodejs";
@@ -28,38 +28,31 @@ export async function POST(request: NextRequest) {
       true
     );
 
-    const opportunities = searchResponse.data.oppHits;
-    console.log(`[Grants Ingest] Found ${opportunities.length} opportunities`);
+    const rawOpportunities = searchResponse.data.oppHits;
+    console.log(`[Grants Ingest] Found ${rawOpportunities.length} opportunities`);
 
-    const records: GrantRecord[] = [];
+    const maxRecordsSetting = Number(config.pagination?.maxRecords ?? 0);
+    const opportunities =
+      Number.isFinite(maxRecordsSetting) && maxRecordsSetting > 0
+        ? rawOpportunities.slice(0, Math.min(maxRecordsSetting, rawOpportunities.length))
+        : rawOpportunities;
+
+    if (opportunities.length !== rawOpportunities.length) {
+      console.log(
+        `[Grants Ingest] Limiting processing to ${opportunities.length} opportunities based on pagination.maxRecords`
+      );
+    }
+
+    let records: GrantRecord[] = [];
 
     if (config.filters.fetchDetails) {
-      console.log("[Grants Ingest] Fetching detailed information...");
-
-      for (let index = 0; index < opportunities.length; index += 1) {
-        const opportunity = opportunities[index];
-
-        try {
-          const details = await client.fetchOpportunity(opportunity.id);
-          const record = mapOpportunityToRecord(opportunity, details);
-          records.push(record);
-        } catch (error) {
-          console.error(`[Grants Ingest] Failed to fetch details for ${opportunity.number}:`, error);
-          records.push(mapOpportunityToRecord(opportunity));
-        }
-
-        if (index < opportunities.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 200));
-        }
-
-        if ((index + 1) % 25 === 0) {
-          console.log(`[Grants Ingest] Processed ${index + 1}/${opportunities.length} opportunities`);
-        }
-      }
+      const concurrency = resolveDetailsConcurrency();
+      console.log(
+        `[Grants Ingest] Fetching detailed information with concurrency ${concurrency} (total ${opportunities.length})...`
+      );
+      records = await fetchDetailedOpportunityRecords(opportunities, client, concurrency);
     } else {
-      for (const opportunity of opportunities) {
-        records.push(mapOpportunityToRecord(opportunity));
-      }
+      records = opportunities.map((opportunity) => mapOpportunityToRecord(opportunity));
     }
 
     const minAwardAmount = config.filters.minAwardAmount ?? 0;
@@ -85,7 +78,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
       duration: `${duration}ms`,
       stats: {
-        fetched: opportunities.length,
+        fetched: rawOpportunities.length,
         processed: filteredRecords.length,
         ...upsertResult
       }
@@ -114,4 +107,59 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   return POST(request);
+}
+
+function resolveDetailsConcurrency(): number {
+  const fromEnv = Number(process.env.GRANTS_GOV_FETCH_DETAILS_CONCURRENCY ?? 0);
+  if (Number.isFinite(fromEnv) && fromEnv > 0) {
+    return Math.floor(fromEnv);
+  }
+  return 5;
+}
+
+async function fetchDetailedOpportunityRecords(
+  opportunities: GrantsGovOpportunitySummary[],
+  client: GrantsGovClient,
+  concurrency: number
+): Promise<GrantRecord[]> {
+  if (opportunities.length === 0) {
+    return [];
+  }
+
+  const sanitizedConcurrency = Math.max(1, Math.min(concurrency, opportunities.length));
+  const records: GrantRecord[] = new Array(opportunities.length);
+  let nextIndex = 0;
+  let processed = 0;
+
+  const workers = Array.from({ length: sanitizedConcurrency }, () =>
+    (async () => {
+      for (;;) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+
+        if (currentIndex >= opportunities.length) {
+          break;
+        }
+
+        const opportunity = opportunities[currentIndex];
+
+        try {
+          const details = await client.fetchOpportunity(opportunity.id);
+          records[currentIndex] = mapOpportunityToRecord(opportunity, details);
+        } catch (error) {
+          console.error(`[Grants Ingest] Failed to fetch details for ${opportunity.number}:`, error);
+          records[currentIndex] = mapOpportunityToRecord(opportunity);
+        }
+
+        const processedCount = (processed += 1);
+        if (processedCount % 25 === 0 || processedCount === opportunities.length) {
+          console.log(`[Grants Ingest] Processed ${processedCount}/${opportunities.length} opportunities`);
+        }
+      }
+    })()
+  );
+
+  await Promise.all(workers);
+
+  return records;
 }

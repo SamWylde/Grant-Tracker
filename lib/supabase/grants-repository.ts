@@ -80,10 +80,17 @@ export class GrantsRepository {
     }
 
     if (filters?.query) {
-      const term = filters.query;
-      query = query.or(
-        `title.ilike.%${term}%,agency.ilike.%${term}%,summary.ilike.%${term}%,synopsis_desc.ilike.%${term}%`
-      );
+      const term = filters.query.trim();
+      if (term) {
+        const escapedTerm = escapeSupabaseFilterTerm(term);
+        const filter = [
+          `title.ilike.%${escapedTerm}%`,
+          `agency.ilike.%${escapedTerm}%`,
+          `summary.ilike.%${escapedTerm}%`,
+          `synopsis_desc.ilike.%${escapedTerm}%`
+        ].join(",");
+        query = query.or(filter);
+      }
     }
 
     const { data, error } = await query;
@@ -111,6 +118,16 @@ export class GrantsRepository {
       throw error;
     }
   }
+}
+
+function escapeSupabaseFilterTerm(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_")
+    .replace(/,/g, "\\,")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
 }
 
 export function mapGrantRecordToOpportunity(record: GrantRecord): GrantOpportunity {
