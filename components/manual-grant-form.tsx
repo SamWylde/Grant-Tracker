@@ -3,6 +3,21 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
+import {
+  ActionIcon,
+  Button,
+  Grid,
+  Group,
+  Paper,
+  Select,
+  Stack,
+  Text,
+  TextInput,
+  Textarea,
+  Title
+} from "@mantine/core";
+import { IconPlus, IconTrash } from "@tabler/icons-react";
+
 import { useGrantContext, type Priority, type Stage } from "./grant-context";
 
 const STAGE_OPTIONS: Stage[] = ["Researching", "Drafting", "Submitted", "Awarded", "Declined"];
@@ -72,180 +87,176 @@ export function ManualGrantForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 rounded-3xl border border-white/10 bg-slate-900/60 p-6 text-sm text-slate-200">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-white">Log a manual opportunity</h1>
-        <p className="text-sm text-slate-300">
-          Capture prospects that aren&apos;t published on Grants.gov. They&apos;ll appear alongside your pipeline with full reminders and tasks.
-        </p>
-      </header>
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Grant title</span>
-          <input
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            required
-            className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
-            placeholder="Local foundation opportunity"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Funding agency</span>
-          <input
-            value={agency}
-            onChange={(event) => setAgency(event.target.value)}
-            required
-            className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
-            placeholder="Community Foundation"
-          />
-        </label>
-        <label className="md:col-span-2 flex flex-col gap-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Summary</span>
-          <textarea
-            value={summary}
-            onChange={(event) => setSummary(event.target.value)}
-            className="h-24 rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
-            placeholder="Key fit notes or requirements"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Primary due date</span>
-          <input
-            type="date"
-            value={closeDate}
-            onChange={(event) => setCloseDate(event.target.value)}
-            className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Pipeline owner email</span>
-          <input
-            type="email"
-            value={owner}
-            onChange={(event) => setOwner(event.target.value)}
-            className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
-            placeholder="teammate@nonprofit.org"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Stage</span>
-          <select
-            value={stage}
-            onChange={(event) => setStage(event.target.value as Stage)}
-            className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
-          >
-            {STAGE_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Priority</span>
-          <select
-            value={priority}
-            onChange={(event) => setPriority(event.target.value as Priority)}
-            className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
-          >
-            {PRIORITY_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <label className="flex flex-col gap-1">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Notes</span>
-        <textarea
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          className="h-24 rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
-          placeholder="Submission approach, contacts, or history"
-        />
-      </label>
-      <section className="space-y-4 rounded-2xl border border-white/10 bg-slate-950/50 p-4">
-        <header className="flex flex-col gap-1">
-          <h2 className="text-sm font-semibold text-white">Checklist tasks</h2>
-          <p className="text-xs text-slate-400">
-            Break the work down and assign it immediately. Leave blank if you&apos;ll create tasks later.
-          </p>
-        </header>
-        {tasks.length === 0 && (
-          <p className="text-xs text-slate-400">No tasks yet. Add your first item below.</p>
-        )}
-        {tasks.map((task, index) => (
-          <div key={`task-${index}`} className="grid gap-3 md:grid-cols-[2fr,1fr,1fr,auto]">
-            <input
-              value={task.label}
-              onChange={(event) => {
-                const value = event.target.value;
-                setTasks((prev) =>
-                  prev.map((item, taskIndex) => (taskIndex === index ? { ...item, label: value } : item))
-                );
-              }}
-              placeholder="Draft narrative"
-              className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
+    <Paper component="form" onSubmit={handleSubmit} withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+      <Stack gap="xl">
+        <Stack gap={4}>
+          <Title order={2}>Log a manual opportunity</Title>
+          <Text size="sm" c="dimmed">
+            Capture prospects that aren&apos;t published on Grants.gov. They&apos;ll appear alongside your pipeline with full reminders and tasks.
+          </Text>
+        </Stack>
+        <Grid gutter="lg">
+          <Grid.Col span={{ base: 12, md: 6 }}>
+            <TextInput
+              label="Grant title"
+              value={title}
+              onChange={(event) => setTitle(event.currentTarget.value)}
+              required
+              placeholder="Local foundation opportunity"
             />
-            <input
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 6 }}>
+            <TextInput
+              label="Funding agency"
+              value={agency}
+              onChange={(event) => setAgency(event.currentTarget.value)}
+              required
+              placeholder="Community Foundation"
+            />
+          </Grid.Col>
+          <Grid.Col span={12}>
+            <Textarea
+              label="Summary"
+              value={summary}
+              onChange={(event) => setSummary(event.currentTarget.value)}
+              placeholder="Key fit notes or requirements"
+              minRows={3}
+              autosize
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 6 }}>
+            <TextInput
+              label="Primary due date"
               type="date"
-              value={task.dueDate}
-              onChange={(event) => {
-                const value = event.target.value;
-                setTasks((prev) =>
-                  prev.map((item, taskIndex) => (taskIndex === index ? { ...item, dueDate: value } : item))
-                );
-              }}
-              className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
+              value={closeDate}
+              onChange={(event) => setCloseDate(event.currentTarget.value)}
             />
-            <input
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 6 }}>
+            <TextInput
+              label="Pipeline owner email"
               type="email"
-              value={task.assignee}
-              onChange={(event) => {
-                const value = event.target.value;
-                setTasks((prev) =>
-                  prev.map((item, taskIndex) => (taskIndex === index ? { ...item, assignee: value } : item))
-                );
-              }}
-              placeholder="owner@nonprofit.org"
-              className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
+              value={owner}
+              onChange={(event) => setOwner(event.currentTarget.value)}
+              placeholder="teammate@nonprofit.org"
             />
-            <button
-              type="button"
-              onClick={() => setTasks((prev) => prev.filter((_, taskIndex) => taskIndex !== index))}
-              className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-rose-400 hover:text-white"
-            >
-              Remove
-            </button>
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={addEmptyTask}
-          className="rounded-lg border border-dashed border-white/20 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-emerald-400 hover:text-white"
-        >
-          Add task
-        </button>
-      </section>
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <button
-          type="submit"
-          className="rounded-lg bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/30 hover:text-white"
-        >
-          Save grant
-        </button>
-        {status && <p className="text-xs text-slate-400">{status}</p>}
-        {createdGrantId && (
-          <Link
-            href={`/grants/${encodeURIComponent(createdGrantId)}`}
-            className="text-xs font-semibold text-emerald-200 underline"
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 6 }}>
+            <Select
+              label="Stage"
+              data={STAGE_OPTIONS.map((option) => ({ value: option, label: option }))}
+              value={stage}
+              onChange={(value) => setStage((value as Stage) ?? stage)}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 6 }}>
+            <Select
+              label="Priority"
+              data={PRIORITY_OPTIONS.map((option) => ({ value: option, label: option }))}
+              value={priority}
+              onChange={(value) => setPriority((value as Priority) ?? priority)}
+            />
+          </Grid.Col>
+        </Grid>
+        <Textarea
+          label="Notes"
+          value={notes}
+          onChange={(event) => setNotes(event.currentTarget.value)}
+          placeholder="Submission approach, contacts, or history"
+          autosize
+          minRows={3}
+        />
+        <Stack gap="md" component={Paper} withBorder radius="lg" p="lg" bg="rgba(10,24,50,0.6)">
+          <Stack gap={4}>
+            <Text fw={600}>Checklist tasks</Text>
+            <Text size="xs" c="dimmed">
+              Break the work down and assign it immediately. Leave blank if you&apos;ll create tasks later.
+            </Text>
+          </Stack>
+          {tasks.length === 0 && (
+            <Text size="xs" c="dimmed">
+              No tasks yet. Add your first item below.
+            </Text>
+          )}
+          <Stack gap="sm">
+            {tasks.map((task, index) => (
+              <Paper key={`task-${index}`} withBorder radius="md" p="md" bg="rgba(6,14,32,0.6)">
+                <Grid gutter="md" align="center">
+                  <Grid.Col span={{ base: 12, md: 6 }}>
+                    <TextInput
+                      label="Task label"
+                      value={task.label}
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setTasks((prev) => prev.map((item, taskIndex) => (taskIndex === index ? { ...item, label: value } : item)));
+                      }}
+                      placeholder="Draft narrative"
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 3 }}>
+                    <TextInput
+                      label="Due date"
+                      type="date"
+                      value={task.dueDate}
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setTasks((prev) => prev.map((item, taskIndex) => (taskIndex === index ? { ...item, dueDate: value } : item)));
+                      }}
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 11, sm: 3 }}>
+                    <TextInput
+                      label="Assignee email"
+                      type="email"
+                      value={task.assignee}
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setTasks((prev) => prev.map((item, taskIndex) => (taskIndex === index ? { ...item, assignee: value } : item)));
+                      }}
+                      placeholder="owner@nonprofit.org"
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 1 }}>
+                    <Group justify="flex-end">
+                      <ActionIcon
+                        color="red"
+                        variant="light"
+                        aria-label="Remove task"
+                        onClick={() => setTasks((prev) => prev.filter((_, taskIndex) => taskIndex !== index))}
+                      >
+                        <IconTrash size="1rem" />
+                      </ActionIcon>
+                    </Group>
+                  </Grid.Col>
+                </Grid>
+              </Paper>
+            ))}
+          </Stack>
+          <Button
+            variant="outline"
+            size="sm"
+            leftSection={<IconPlus size="1rem" />}
+            onClick={addEmptyTask}
           >
-            View grant details
-          </Link>
-        )}
-      </div>
-    </form>
+            Add task
+          </Button>
+        </Stack>
+        <Group justify="space-between" align="center">
+          <Button type="submit">Save grant</Button>
+          <Stack gap={2} align="flex-end" miw={180}>
+            {status && (
+              <Text size="xs" c="dimmed">
+                {status}
+              </Text>
+            )}
+            {createdGrantId && (
+              <Text size="xs">
+                <Link href={`/grants/${encodeURIComponent(createdGrantId)}`}>View grant details</Link>
+              </Text>
+            )}
+          </Stack>
+        </Group>
+      </Stack>
+    </Paper>
   );
 }

@@ -3,6 +3,20 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import {
+  Anchor,
+  Badge,
+  Card,
+  Group,
+  Paper,
+  Select,
+  SimpleGrid,
+  Stack,
+  Text,
+  Textarea,
+  Title
+} from "@mantine/core";
+
 import { describeOffset, formatReminderDate } from "@/lib/reminders";
 
 import { useGrantContext, type SavedGrant, type Stage } from "./grant-context";
@@ -10,9 +24,9 @@ import { useGrantContext, type SavedGrant, type Stage } from "./grant-context";
 const STAGES: Stage[] = ["Researching", "Drafting", "Submitted", "Awarded", "Declined"];
 
 const PRIORITY_COLORS: Record<string, string> = {
-  High: "bg-rose-500/20 text-rose-200 border-rose-400/50",
-  Medium: "bg-amber-500/20 text-amber-100 border-amber-400/50",
-  Low: "bg-emerald-500/20 text-emerald-100 border-emerald-400/50"
+  High: "red",
+  Medium: "yellow",
+  Low: "teal"
 };
 
 export function PipelineBoard() {
@@ -46,134 +60,143 @@ export function PipelineBoard() {
 
   if (Object.keys(savedGrants).length === 0) {
     return (
-      <section className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 text-center text-sm text-slate-300">
-        Save a grant from the discovery list to start tracking it in your pipeline.
-      </section>
+      <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)" ta="center">
+        <Text size="sm" c="dimmed">
+          Save a grant from the discovery list to start tracking it in your pipeline.
+        </Text>
+      </Paper>
     );
   }
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-slate-900/60 p-6">
-      <header className="mb-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-white">Pipeline board</h2>
-          <p className="text-sm text-slate-300">
+    <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+      <Stack gap="lg">
+        <Stack gap={4}>
+          <Title order={3}>Pipeline board</Title>
+          <Text size="sm" c="dimmed">
             Drag-free column updates: change the stage from the dropdown and we will log the move instantly.
-          </p>
-        </div>
-      </header>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        {STAGES.map((stage) => {
-          const grants = grantsByStage[stage] ?? [];
-          return (
-            <div key={stage} className="flex min-h-[260px] flex-col gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-              <header className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-300">
-                  {stage}
-                </h3>
-                <span className="text-xs text-slate-400">{grants.length}</span>
-              </header>
-              <div className="flex flex-1 flex-col gap-3">
-                {grants.length === 0 && (
-                  <p className="rounded-xl border border-dashed border-white/10 p-3 text-xs text-slate-500">
-                    No grants here yet.
-                  </p>
-                )}
-                {grants.map((grant) => {
-                  const sortedMilestones = (grant.milestones ?? []).slice().sort((a, b) => {
-                    if (!a.dueDate && !b.dueDate) return 0;
-                    if (!a.dueDate) return 1;
-                    if (!b.dueDate) return -1;
-                    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-                  });
-                  const nextMilestone = sortedMilestones.find((milestone) => milestone.dueDate);
-                  const nextReminder = nextMilestone?.scheduledReminders?.[0];
-                  const note = noteByGrant[grant.id] ?? "";
-                  return (
-                    <article key={grant.id} className="space-y-3 rounded-xl border border-white/10 bg-slate-900/70 p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-xs uppercase tracking-wide text-slate-400">{grant.agency}</p>
-                          <p className="text-sm font-semibold text-white">{grant.title}</p>
-                        </div>
-                        <Link
-                          href={`/grants/${encodeURIComponent(grant.id)}`}
-                          className="text-xs font-medium text-emerald-300 underline-offset-2 hover:underline"
-                        >
-                          Details
-                        </Link>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-                        <span className={`rounded-full border px-2 py-0.5 ${PRIORITY_COLORS[grant.priority]}`}>
-                          {grant.priority} priority
-                        </span>
-                        {grant.owner && (
-                          <span className="rounded-full border border-white/10 px-2 py-0.5 text-slate-200">
-                            Owner: {grant.owner}
-                          </span>
-                        )}
-                        {nextMilestone?.dueDate && (
-                          <span className="rounded-full border border-white/10 px-2 py-0.5 text-slate-200">
-                            {nextMilestone.label} · {new Date(nextMilestone.dueDate).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                      {nextReminder && (
-                        <div className="rounded-lg border border-white/10 bg-slate-950/60 p-2 text-[11px] text-slate-300">
-                          <p className="font-semibold text-slate-100">Next reminder</p>
-                          <p>
-                            {nextReminder.channel === "email" ? "Email" : "SMS"} {describeOffset(nextReminder.offsetDays)} · {formatReminderDate(nextReminder.sendAt, timezone)}
-                          </p>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-xs">
-                        <label className="text-slate-300">Move to:</label>
-                        <select
-                          value={grant.stage}
-                          onChange={(event) => {
-                            const nextStage = event.target.value as Stage;
-                            updateGrantStage(grant.id, nextStage, note ? `Note: ${note}` : undefined);
-                            setNoteByGrant((prev) => ({ ...prev, [grant.id]: "" }));
-                          }}
-                          className="flex-1 rounded-lg border border-white/10 bg-slate-950/70 px-2 py-1 text-xs text-white"
-                        >
-                          {STAGES.map((value) => (
-                            <option key={value} value={value}>
-                              {value}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <textarea
-                        placeholder="Add context for this move"
-                        value={note}
-                        onChange={(event) =>
-                          setNoteByGrant((prev) => ({ ...prev, [grant.id]: event.target.value }))
-                        }
-                        className="w-full rounded-lg border border-white/10 bg-slate-950/70 px-2 py-1 text-xs text-white placeholder:text-slate-500"
-                      />
-                      <div className="rounded-lg border border-white/5 bg-white/5 p-2 text-xs text-slate-300">
-                        <p className="font-semibold text-slate-200">Stage history</p>
-                        <ul className="mt-1 space-y-1">
-                          {grant.history
-                            .slice()
-                            .reverse()
-                            .map((entry, index) => (
-                              <li key={`${grant.id}-history-${index}`}>
-                                <span className="font-medium text-white">{entry.stage}</span> on{" "}
-                                {new Date(entry.changedAt).toLocaleString()} {entry.note && `— ${entry.note}`}
-                              </li>
-                            ))}
-                        </ul>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
+          </Text>
+        </Stack>
+        <SimpleGrid cols={{ base: 1, md: 2, xl: 5 }} spacing="lg">
+          {STAGES.map((stage) => {
+            const grants = grantsByStage[stage] ?? [];
+            return (
+              <Card key={stage} withBorder radius="lg" p="lg" bg="rgba(10,22,45,0.7)">
+                <Group justify="space-between" align="center">
+                  <Text size="sm" fw={600} tt="uppercase" c="dimmed">
+                    {stage}
+                  </Text>
+                  <Badge variant="light" color="midnight">
+                    {grants.length}
+                  </Badge>
+                </Group>
+                <Stack gap="md" mt="md">
+                  {grants.length === 0 && (
+                    <Paper withBorder radius="md" p="md" bg="rgba(6,14,32,0.6)">
+                      <Text size="xs" c="dimmed">
+                        No grants here yet.
+                      </Text>
+                    </Paper>
+                  )}
+                  {grants.map((grant) => {
+                    const sortedMilestones = (grant.milestones ?? []).slice().sort((a, b) => {
+                      if (!a.dueDate && !b.dueDate) return 0;
+                      if (!a.dueDate) return 1;
+                      if (!b.dueDate) return -1;
+                      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+                    });
+                    const nextMilestone = sortedMilestones.find((milestone) => milestone.dueDate);
+                    const nextReminder = nextMilestone?.scheduledReminders?.[0];
+                    const note = noteByGrant[grant.id] ?? "";
+                    const priorityColor = PRIORITY_COLORS[grant.priority] ?? "gray";
+                    return (
+                      <Paper key={grant.id} withBorder radius="lg" p="md" bg="rgba(6,14,32,0.6)">
+                        <Stack gap="sm">
+                          <Group justify="space-between" align="flex-start">
+                            <Stack gap={2}>
+                              <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+                                {grant.agency}
+                              </Text>
+                              <Text fw={600}>{grant.title}</Text>
+                            </Stack>
+                            <Anchor component={Link} href={`/grants/${encodeURIComponent(grant.id)}`} size="xs">
+                              Details
+                            </Anchor>
+                          </Group>
+                          <Group gap="xs" wrap="wrap">
+                            <Badge color={priorityColor} variant="light">
+                              {grant.priority} priority
+                            </Badge>
+                            {grant.owner && (
+                              <Badge color="midnight" variant="light">
+                                Owner: {grant.owner}
+                              </Badge>
+                            )}
+                            {nextMilestone?.dueDate && (
+                              <Badge color="blue" variant="light">
+                                {nextMilestone.label} · {new Date(nextMilestone.dueDate).toLocaleDateString()}
+                              </Badge>
+                            )}
+                          </Group>
+                          {nextReminder && (
+                            <Paper radius="md" p="sm" withBorder bg="rgba(2,10,28,0.8)">
+                              <Text size="xs" fw={600}>
+                                Next reminder
+                              </Text>
+                              <Text size="xs" c="dimmed">
+                                {nextReminder.channel === "email" ? "Email" : "SMS"} {describeOffset(nextReminder.offsetDays)} · {formatReminderDate(nextReminder.sendAt, timezone)}
+                              </Text>
+                            </Paper>
+                          )}
+                          <Select
+                            label="Move to"
+                            data={STAGES.map((value) => ({ value, label: value }))}
+                            value={grant.stage}
+                            onChange={(value) => {
+                              if (!value) return;
+                              updateGrantStage(grant.id, value as Stage, note ? `Note: ${note}` : undefined);
+                              setNoteByGrant((prev) => ({ ...prev, [grant.id]: "" }));
+                            }}
+                            size="xs"
+                          />
+                          <Textarea
+                            placeholder="Add context for this move"
+                            value={note}
+                            size="xs"
+                            autosize
+                            minRows={2}
+                            onChange={(event) =>
+                              setNoteByGrant((prev) => ({ ...prev, [grant.id]: event.currentTarget.value }))
+                            }
+                          />
+                          <Stack gap={4}>
+                            <Text size="xs" fw={600}>
+                              Stage history
+                            </Text>
+                            <Stack gap={4}>
+                              {grant.history
+                                .slice()
+                                .reverse()
+                                .map((entry, index) => (
+                                  <Text key={`${grant.id}-history-${index}`} size="xs" c="dimmed">
+                                    <Text component="span" fw={600} c="white">
+                                      {entry.stage}
+                                    </Text>{" "}
+                                    on {new Date(entry.changedAt).toLocaleString()} {entry.note && `— ${entry.note}`}
+                                  </Text>
+                                ))}
+                            </Stack>
+                          </Stack>
+                        </Stack>
+                      </Paper>
+                    );
+                  })}
+                </Stack>
+              </Card>
+            );
+          })}
+        </SimpleGrid>
+      </Stack>
+    </Paper>
   );
 }
