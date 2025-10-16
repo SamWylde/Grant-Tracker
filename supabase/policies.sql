@@ -107,6 +107,47 @@ create policy "members_self_membership" on public.org_memberships
   for select
   using (auth.uid() = user_id);
 
+drop policy if exists "invitees_create_membership" on public.org_memberships;
+create policy "invitees_create_membership" on public.org_memberships
+  for insert
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1
+      from public.org_invites i
+      where i.org_id = org_memberships.org_id
+        and lower(i.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+        and i.status in ('invited','accepted')
+        and i.role = org_memberships.role
+    )
+  );
+
+drop policy if exists "invitees_update_membership" on public.org_memberships;
+create policy "invitees_update_membership" on public.org_memberships
+  for update
+  using (
+    auth.uid() = user_id
+    and exists (
+      select 1
+      from public.org_invites i
+      where i.org_id = org_memberships.org_id
+        and lower(i.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+        and i.status in ('invited','accepted')
+        and i.role = org_memberships.role
+    )
+  )
+  with check (
+    auth.uid() = user_id
+    and exists (
+      select 1
+      from public.org_invites i
+      where i.org_id = org_memberships.org_id
+        and lower(i.email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+        and i.status in ('invited','accepted')
+        and i.role = org_memberships.role
+    )
+  );
+
 drop policy if exists "admins_view_org_memberships" on public.org_memberships;
 create policy "admins_view_org_memberships" on public.org_memberships
   for select
