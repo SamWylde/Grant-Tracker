@@ -223,15 +223,15 @@ set search_path = public
 as $$
 declare
   target_invite public.org_invites%rowtype;
-  current_user uuid;
+  current_user_id uuid;
   invite_email text;
 begin
   if invite_token is null or length(trim(invite_token)) = 0 then
     raise exception 'Invite token is required.';
   end if;
 
-  current_user := auth.uid();
-  if current_user is null then
+  current_user_id := auth.uid();
+  if current_user_id is null then
     raise exception 'Authentication is required to accept an invite.';
   end if;
 
@@ -264,7 +264,7 @@ begin
   )
   values (
     target_invite.org_id,
-    current_user,
+    current_user_id,
     target_invite.role,
     'active',
     target_invite.invited_by,
