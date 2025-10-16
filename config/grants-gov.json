@@ -1,0 +1,33 @@
+{
+  "syncSchedule": "0 */6 * * *",
+  "filters": {
+    "oppStatuses": "forecasted|posted",
+    "states": [],
+    "fundingCategories": [
+      "HL",
+      "ED",
+      "AR",
+      "AE",
+      "CD",
+      "EN",
+      "FN",
+      "HO",
+      "IS",
+      "NR",
+      "O",
+      "RA",
+      "RD",
+      "ST"
+    ],
+    "minAwardAmount": 5000,
+    "fetchDetails": true
+  },
+  "pagination": {
+    "rowsPerPage": 100,
+    "maxRecords": 5000
+  },
+  "cleanup": {
+    "enabled": true,
+    "deleteOldGrantsAfterDays": 180
+  }
+}
