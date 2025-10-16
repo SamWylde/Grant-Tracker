@@ -79,8 +79,6 @@ export default async function RootLayout({
             primaryColor: "midnight",
             primaryShade: 6
           }}
-          withGlobalStyles={false}
-          withNormalizeCSS={false}
         >
           <Notifications position="top-right" autoClose={4000} />
           <AuthProvider>
