@@ -169,12 +169,13 @@ function isOrgGrantRow(value: unknown): value is OrgGrantRow {
 }
 
 export async function fetchOrgGrants(
-  orgId: string = getDefaultOrgId(),
+  orgId?: string,
   options: SupabaseOptions = {}
 ): Promise<SavedGrant[]> {
   if (!isSupabaseServerConfigured()) {
     return [];
   }
+  const resolvedOrgId = orgId ?? getDefaultOrgId();
   const client = getSupabaseServerClient();
   let query = client
     .from("org_grants")
@@ -210,7 +211,7 @@ export async function fetchOrgGrants(
         "updated_at"
       ].join(",")
     )
-    .eq("org_id", orgId)
+    .eq("org_id", resolvedOrgId)
     .order("updated_at", { ascending: false });
 
   query = applyAbortSignal(query, options.signal);
@@ -236,14 +237,15 @@ export async function fetchOrgGrants(
 
 export async function upsertOrgGrant(
   grant: SavedGrant,
-  orgId: string = getDefaultOrgId(),
+  orgId?: string,
   options: SupabaseOptions = {}
 ) {
   if (!isSupabaseServerConfigured()) {
     return;
   }
+  const resolvedOrgId = orgId ?? getDefaultOrgId();
   const client = getSupabaseServerClient();
-  const payload = mapSavedGrantToRow(grant, orgId);
+  const payload = mapSavedGrantToRow(grant, resolvedOrgId);
   let query = client.from("org_grants").upsert(payload, { onConflict: "id" });
   query = applyAbortSignal(query, options.signal);
   const { error } = await query;
@@ -254,17 +256,18 @@ export async function upsertOrgGrant(
 
 export async function deleteOrgGrant(
   grantId: string,
-  orgId: string = getDefaultOrgId(),
+  orgId?: string,
   options: SupabaseOptions = {}
 ) {
   if (!isSupabaseServerConfigured()) {
     return;
   }
+  const resolvedOrgId = orgId ?? getDefaultOrgId();
   const client = getSupabaseServerClient();
   let query = client
     .from("org_grants")
     .delete()
-    .eq("org_id", orgId)
+    .eq("org_id", resolvedOrgId)
     .eq("id", grantId);
   query = applyAbortSignal(query, options.signal);
   const { error } = await query;
