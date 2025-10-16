@@ -6,6 +6,11 @@ import { executeSql, isSelectQuery } from "@/lib/admin/db";
 
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 function getRateLimitCap(): number {
   const raw = process.env.ADMIN_RATE_LIMIT_QUERIES_PER_HOUR;
   const fallback = 100;

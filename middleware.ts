@@ -2,20 +2,10 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
 
-import { logAdminAccessAttempt } from "@/lib/admin/audit";
-import { isAdminPanelEnabled } from "@/lib/admin/auth";
-import { getSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
-
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
   if (!pathname.startsWith("/admin")) {
     return NextResponse.next();
-  }
-
-  if (!isAdminPanelEnabled()) {
-    const redirectUrl = new URL("/dashboard", request.url);
-    redirectUrl.searchParams.set("error", "admin_disabled");
-    return NextResponse.redirect(redirectUrl);
   }
 
   const response = NextResponse.next();
@@ -34,58 +24,72 @@ export async function middleware(request: NextRequest) {
     supabaseKey
   });
 
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
   const ip = request.headers.get("x-forwarded-for") ?? request.ip ?? null;
   const userAgent = request.headers.get("user-agent") ?? null;
+  await supabase.auth.getUser();
 
-  if (!user) {
-    const redirectUrl = new URL("/login", request.url);
-    redirectUrl.searchParams.set("redirect_to", pathname + (searchParams.toString() ? `?${searchParams}` : ""));
-    await logAdminAccessAttempt({
-      userId: null,
-      path: pathname,
-      status: "denied",
-      ip,
-      userAgent,
-      reason: "Unauthenticated"
+  let authorizationResult: { authorized?: boolean; reason?: string } = {};
+
+  try {
+    const authorizationResponse = await fetch(new URL("/api/admin/authorize", request.url), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: request.headers.get("cookie") ?? ""
+      },
+      body: JSON.stringify({
+        path: pathname,
+        ip,
+        userAgent
+      })
     });
+
+    if (authorizationResponse.headers.get("content-type")?.includes("application/json")) {
+      authorizationResult = await authorizationResponse.json();
+    }
+
+    if (!authorizationResponse.ok) {
+      authorizationResult.authorized = false;
+      authorizationResult.reason ??= authorizationResponse.status === 401 ? "unauthenticated" : "server_error";
+    }
+  } catch (error) {
+    console.error("Failed to verify admin authorization", error);
+    const redirectUrl = new URL("/dashboard", request.url);
+    redirectUrl.searchParams.set("error", "admin_verification_failed");
     return NextResponse.redirect(redirectUrl);
   }
 
-  const serviceClient = getSupabaseServiceRoleClient();
-  const { data: platformAdminRecord } = await serviceClient
-    .from("platform_admins")
-    .select("user_id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  if (!authorizationResult.authorized) {
+    const reason = authorizationResult.reason;
 
-  let isAuthorized = Boolean(platformAdminRecord);
+    if (reason === "unauthenticated") {
+      const redirectUrl = new URL("/login", request.url);
+      const redirectTo = pathname + (searchParams.toString() ? `?${searchParams}` : "");
+      redirectUrl.searchParams.set("redirect_to", redirectTo);
+      redirectUrl.searchParams.set("error", "admin_auth_required");
+      return NextResponse.redirect(redirectUrl);
+    }
 
-  if (!isAuthorized) {
-    const { data: orgAdminMemberships } = await serviceClient
-      .from("org_memberships")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .limit(1);
+    if (reason === "admin_disabled") {
+      const redirectUrl = new URL("/dashboard", request.url);
+      redirectUrl.searchParams.set("error", "admin_disabled");
+      return NextResponse.redirect(redirectUrl);
+    }
 
-    isAuthorized = Boolean(orgAdminMemberships && orgAdminMemberships.length > 0);
-  }
+    if (reason === "supabase_not_configured") {
+      const redirectUrl = new URL("/login", request.url);
+      redirectUrl.searchParams.set("error", "supabase_not_configured");
+      return NextResponse.redirect(redirectUrl);
+    }
 
-  if (!isAuthorized) {
+    if (reason === "insufficient_role") {
+      const redirectUrl = new URL("/dashboard", request.url);
+      redirectUrl.searchParams.set("error", "admin_access_required");
+      return NextResponse.redirect(redirectUrl);
+    }
+
     const redirectUrl = new URL("/dashboard", request.url);
-    redirectUrl.searchParams.set("error", "admin_access_required");
-    await logAdminAccessAttempt({
-      userId: user.id,
-      path: pathname,
-      status: "denied",
-      ip,
-      userAgent,
-      reason: "Insufficient role"
-    });
+    redirectUrl.searchParams.set("error", "admin_verification_failed");
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -99,14 +103,6 @@ export async function middleware(request: NextRequest) {
         if (elapsed > sessionTimeoutMinutes * 60 * 1000) {
           const redirectUrl = new URL("/login", request.url);
           redirectUrl.searchParams.set("error", "admin_session_expired");
-          await logAdminAccessAttempt({
-            userId: user.id,
-            path: pathname,
-            status: "denied",
-            ip,
-            userAgent,
-            reason: "Session timeout"
-          });
           return NextResponse.redirect(redirectUrl);
         }
       }
@@ -118,14 +114,6 @@ export async function middleware(request: NextRequest) {
       secure: process.env.NODE_ENV === "production"
     });
   }
-
-  await logAdminAccessAttempt({
-    userId: user.id,
-    path: pathname,
-    status: "authorized",
-    ip,
-    userAgent
-  });
 
   return response;
 }

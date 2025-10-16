@@ -61,7 +61,7 @@ export async function isPlatformAdmin(userId: string): Promise<boolean> {
   return Boolean(data?.user_id);
 }
 
-async function fetchAdminOrgIds(userId: string): Promise<string[]> {
+export async function fetchAdminOrgIds(userId: string): Promise<string[]> {
   const serviceClient = getSupabaseServiceRoleClient();
   const { data, error } = await serviceClient
     .from("org_memberships")
@@ -75,6 +75,15 @@ async function fetchAdminOrgIds(userId: string): Promise<string[]> {
   }
 
   return (data ?? []).map((row) => row.org_id).filter(Boolean);
+}
+
+export async function loadAdminAuthorization(userId: string): Promise<{
+  isPlatformAdmin: boolean;
+  adminOrgIds: string[];
+}> {
+  const isPlatform = await isPlatformAdmin(userId);
+  const adminOrgIds = await fetchAdminOrgIds(userId);
+  return { isPlatformAdmin: isPlatform, adminOrgIds };
 }
 
 export async function getAdminContext(): Promise<AdminContext> {
@@ -96,8 +105,7 @@ export async function getAdminContext(): Promise<AdminContext> {
     throw new AdminAccessError("You must be signed in to access the admin panel.");
   }
 
-  const platformAdmin = await isPlatformAdmin(user.id);
-  const adminOrgIds = await fetchAdminOrgIds(user.id);
+  const { isPlatformAdmin: platformAdmin, adminOrgIds } = await loadAdminAuthorization(user.id);
 
   if (!platformAdmin && adminOrgIds.length === 0) {
     throw new AdminAccessError("You need the admin role to access this area.");
