@@ -2,15 +2,20 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let browserClient: SupabaseClient | undefined;
 
+function resolveEnvVar(name: string, fallbackName: string) {
+  return process.env[name] ?? process.env[fallbackName];
+}
+
 export function isSupabaseBrowserConfigured(): boolean {
   return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    resolveEnvVar("NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL") &&
+      resolveEnvVar("NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY")
   );
 }
 
 function resolveConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = resolveEnvVar("NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL");
+  const key = resolveEnvVar("NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY");
   if (!url || !key) {
     throw new Error(
       "Missing Supabase credentials. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
