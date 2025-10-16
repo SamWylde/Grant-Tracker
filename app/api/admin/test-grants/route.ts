@@ -5,6 +5,11 @@ import { requireAdminContext } from "@/lib/admin/auth";
 
 const GRANTS_ENDPOINT = "https://www.grants.gov/grantsws/rest/opportunities/search";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 function parseHeaderLines(headersText: string | null | undefined): Record<string, string> {
   if (!headersText) return {};
   return headersText
