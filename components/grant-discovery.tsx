@@ -3,6 +3,21 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
+  Badge,
+  Button,
+  Card,
+  Chip,
+  Grid,
+  Group,
+  Paper,
+  Radio,
+  ScrollArea,
+  Stack,
+  Text,
+  Title
+} from "@mantine/core";
+
+import {
   applyGrantFilters,
   getUniqueFocusAreas,
   getUniqueStates,
@@ -83,7 +98,7 @@ export function GrantDiscovery() {
       return filteredGrants;
     }
 
-    return filteredGrants.sort((a, b) => {
+    return filteredGrants.slice().sort((a, b) => {
       const aMatches = countMatches(a, filters);
       const bMatches = countMatches(b, filters);
       return bMatches - aMatches;
@@ -93,136 +108,135 @@ export function GrantDiscovery() {
   const savedGrantIds = useMemo(() => new Set(Object.keys(savedGrants)), [savedGrants]);
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-slate-900/60 p-6">
-      <header className="mb-6 flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold text-white">Grant discovery pipeline</h2>
-            <p className="text-sm text-slate-300">
+    <Paper withBorder radius="xl" p="xl" bg="rgba(8, 17, 40, 0.65)">
+      <Stack gap="lg">
+        <Group justify="space-between" align="flex-start">
+          <Stack gap={4}>
+            <Title order={3} size="h3">
+              Grant discovery pipeline
+            </Title>
+            <Text size="sm" c="dimmed">
               We ingest the Grants.gov catalogue, normalize key fields, and filter to the opportunities that match your onboarding defaults.
-            </p>
-          </div>
-          <span className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-200">
+            </Text>
+          </Stack>
+          <Badge color="teal" radius="xl" variant="light">
             {prioritizedGrants.length} matches
-          </span>
-        </div>
-      </header>
-      <div className="grid gap-6 lg:grid-cols-[320px,1fr] lg:items-start">
-        <aside className="space-y-6">
-          <FilterGroup title="States">
-            <div className="flex flex-wrap gap-2">
-              {states.map((state) => {
-                const active = filters.states.includes(state);
+          </Badge>
+        </Group>
+        <Grid gutter={{ base: 24, md: 40 }} align="start">
+          <Grid.Col span={{ base: 12, lg: 4 }}>
+            <Stack gap="lg">
+              <FilterGroup title="States">
+                <Chip.Group
+                  multiple
+                  value={filters.states}
+                  onChange={(value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      states: value
+                    }))
+                  }
+                >
+                  <ScrollArea h={180} type="auto" offsetScrollbars>
+                    <Group gap="xs">
+                      {states.map((state) => (
+                        <Chip key={state} value={state} radius="xl" variant="light" color="midnight">
+                          {state}
+                        </Chip>
+                      ))}
+                    </Group>
+                  </ScrollArea>
+                </Chip.Group>
+              </FilterGroup>
+              <FilterGroup title="Focus areas">
+                <Chip.Group
+                  multiple
+                  value={filters.focusAreas}
+                  onChange={(value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      focusAreas: value
+                    }))
+                  }
+                >
+                  <ScrollArea h={180} type="auto" offsetScrollbars>
+                    <Group gap="xs">
+                      {focusAreas.map((focus) => (
+                        <Chip key={focus} value={focus} radius="xl" variant="light" color="blue">
+                          {focus}
+                        </Chip>
+                      ))}
+                    </Group>
+                  </ScrollArea>
+                </Chip.Group>
+              </FilterGroup>
+              <FilterGroup title="Due window">
+                <Radio.Group
+                  value={String(filters.dueWithinDays ?? "null")}
+                  onChange={(value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      dueWithinDays: value === "null" ? null : Number(value)
+                    }))
+                  }
+                >
+                  <Stack gap={6}>
+                    {DUE_OPTIONS.map((option) => (
+                      <Radio key={option.label} value={String(option.value)} label={option.label} />
+                    ))}
+                  </Stack>
+                </Radio.Group>
+              </FilterGroup>
+              <FilterGroup title="Funding amount">
+                <Radio.Group
+                  value={`${filters.minAward ?? "null"}-${filters.maxAward ?? "null"}`}
+                  onChange={(value) => {
+                    const [min, max] = value.split("-");
+                    setFilters((prev) => ({
+                      ...prev,
+                      minAward: min === "null" ? null : Number(min),
+                      maxAward: max === "null" ? null : Number(max)
+                    }));
+                  }}
+                >
+                  <Stack gap={6}>
+                    {AMOUNT_OPTIONS.map((option) => (
+                      <Radio
+                        key={option.label}
+                        value={`${option.min ?? "null"}-${option.max ?? "null"}`}
+                        label={option.label}
+                      />
+                    ))}
+                  </Stack>
+                </Radio.Group>
+              </FilterGroup>
+            </Stack>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, lg: 8 }}>
+            <Stack gap="md">
+              {prioritizedGrants.length === 0 && (
+                <Card withBorder radius="lg" bg="rgba(10, 25, 50, 0.6)" padding="xl">
+                  <Text size="sm" c="dimmed">
+                    No grants match your filters yet. Try broadening your due date range or removing focus areas.
+                  </Text>
+                </Card>
+              )}
+              {prioritizedGrants.map((grant) => {
+                const isSaved = savedGrantIds.has(grant.id);
                 return (
-                  <button
-                    key={state}
-                    type="button"
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                      active
-                        ? "border-emerald-400 bg-emerald-500/10 text-emerald-100"
-                        : "border-white/10 bg-white/5 text-slate-200 hover:border-emerald-400 hover:text-white"
-                    }`}
-                    onClick={() => {
-                      setFilters((prev) => ({
-                        ...prev,
-                        states: toggleArrayValue(prev.states, state)
-                      }));
-                    }}
-                  >
-                    {state}
-                  </button>
+                  <GrantCard
+                    key={grant.id}
+                    grant={grant}
+                    isSaved={isSaved}
+                    onToggle={() => toggleSaveGrant(grant)}
+                  />
                 );
               })}
-            </div>
-          </FilterGroup>
-          <FilterGroup title="Focus areas">
-            <div className="flex flex-wrap gap-2">
-              {focusAreas.map((focus) => {
-                const active = filters.focusAreas.includes(focus);
-                return (
-                  <button
-                    key={focus}
-                    type="button"
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                      active
-                        ? "border-sky-400 bg-sky-500/10 text-sky-100"
-                        : "border-white/10 bg-white/5 text-slate-200 hover:border-sky-400 hover:text-white"
-                    }`}
-                    onClick={() => {
-                      setFilters((prev) => ({
-                        ...prev,
-                        focusAreas: toggleArrayValue(prev.focusAreas, focus)
-                      }));
-                    }}
-                  >
-                    {focus}
-                  </button>
-                );
-              })}
-            </div>
-          </FilterGroup>
-          <FilterGroup title="Due window">
-            <div className="flex flex-col gap-2">
-              {DUE_OPTIONS.map((option) => (
-                <label key={option.label} className="flex cursor-pointer items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    className="h-3.5 w-3.5"
-                    checked={filters.dueWithinDays === option.value}
-                    onChange={() =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        dueWithinDays: option.value
-                      }))
-                    }
-                  />
-                  {option.label}
-                </label>
-              ))}
-            </div>
-          </FilterGroup>
-          <FilterGroup title="Funding amount">
-            <div className="flex flex-col gap-2">
-              {AMOUNT_OPTIONS.map((option) => (
-                <label key={option.label} className="flex cursor-pointer items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    className="h-3.5 w-3.5"
-                    checked={filters.minAward === option.min && filters.maxAward === option.max}
-                    onChange={() =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        minAward: option.min,
-                        maxAward: option.max
-                      }))
-                    }
-                  />
-                  {option.label}
-                </label>
-              ))}
-            </div>
-          </FilterGroup>
-        </aside>
-        <div className="space-y-4">
-          {prioritizedGrants.length === 0 && (
-            <div className="rounded-2xl border border-white/10 bg-slate-900/80 p-6 text-sm text-slate-300">
-              No grants match your filters yet. Try broadening your due date range or removing focus areas.
-            </div>
-          )}
-          {prioritizedGrants.map((grant) => {
-            const isSaved = savedGrantIds.has(grant.id);
-            return (
-              <GrantCard
-                key={grant.id}
-                grant={grant}
-                isSaved={isSaved}
-                onToggle={() => toggleSaveGrant(grant)}
-              />
-            );
-          })}
-        </div>
-      </div>
-    </section>
+            </Stack>
+          </Grid.Col>
+        </Grid>
+      </Stack>
+    </Paper>
   );
 }
 
@@ -233,12 +247,12 @@ type FilterGroupProps = {
 
 function FilterGroup({ title, children }: FilterGroupProps) {
   return (
-    <fieldset className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-      <legend className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+    <Stack gap="xs" component={Paper} withBorder radius="lg" p="md" bg="rgba(12, 24, 50, 0.6)">
+      <Text size="xs" fw={600} c="dimmed" tt="uppercase">
         {title}
-      </legend>
+      </Text>
       {children}
-    </fieldset>
+    </Stack>
   );
 }
 
@@ -251,67 +265,67 @@ type GrantCardProps = {
 function GrantCard({ grant, isSaved, onToggle }: GrantCardProps) {
   const amount = grant.awardCeiling ?? grant.estimatedFunding ?? null;
   const dueLabel = formatDate(grant.closeDate);
-  const focusAreas = grant.focusAreas.length > 0 ? grant.focusAreas : ["General"]; // fallback
+  const focusAreas = grant.focusAreas.length > 0 ? grant.focusAreas : ["General"];
 
   return (
-    <article className="rounded-2xl border border-white/10 bg-slate-950/70 p-5 transition hover:border-white/20">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-slate-400">{grant.agency}</p>
-          <h3 className="text-lg font-semibold text-white">{grant.title}</h3>
-        </div>
-        <button
-          type="button"
-          onClick={onToggle}
-          className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-            isSaved
-              ? "border border-emerald-400/50 bg-emerald-500/10 text-emerald-100"
-              : "border border-white/10 bg-white/5 text-slate-100 hover:border-emerald-400 hover:text-white"
-          }`}
-        >
-          {isSaved ? "Saved" : "Save to pipeline"}
-        </button>
-      </header>
-      <div className="mt-4 grid gap-4 text-sm text-slate-300 md:grid-cols-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Opportunity #</p>
-          <p className="mt-1 font-medium text-white">{grant.opportunityNumber}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Due</p>
-          <p className="mt-1 font-medium text-white">{dueLabel}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Award ceiling</p>
-          <p className="mt-1 font-medium text-white">{formatCurrency(amount)}</p>
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Focus areas</p>
-          <p className="mt-1 font-medium text-white">{focusAreas.join(", ")}</p>
-        </div>
-      </div>
-      <p className="mt-4 text-sm text-slate-300">{grant.summary}</p>
-      <footer className="mt-4 flex flex-wrap items-center gap-3 text-xs">
-        <a
-          href={grant.url}
-          target="_blank"
-          rel="noreferrer"
-          className="rounded-full border border-white/10 px-3 py-1 text-slate-200 transition hover:border-white/40 hover:text-white"
-        >
-          View on Grants.gov
-        </a>
-        {grant.eligibilities.some((eligibility) => eligibility.states.length > 0) && (
-          <span className="rounded-full border border-white/10 px-3 py-1 text-slate-300">
-            Eligible states: {grant.eligibilities.flatMap((eligibility) => eligibility.states).join(", ")}
-          </span>
-        )}
-      </footer>
-    </article>
+    <Paper withBorder radius="xl" p="lg" bg="rgba(8, 17, 40, 0.7)">
+      <Stack gap="md">
+        <Group justify="space-between" align="flex-start">
+          <Stack gap={4}>
+            <Text size="xs" tt="uppercase" fw={600} c="dimmed">
+              {grant.agency}
+            </Text>
+            <Title order={4} size="h4">
+              {grant.title}
+            </Title>
+          </Stack>
+          <Button variant={isSaved ? "light" : "outline"} color="teal" radius="xl" onClick={onToggle} size="sm">
+            {isSaved ? "Saved" : "Save to pipeline"}
+          </Button>
+        </Group>
+        <SimpleStats
+          items={[
+            { label: "Opportunity #", value: grant.opportunityNumber },
+            { label: "Due", value: dueLabel },
+            { label: "Award ceiling", value: formatCurrency(amount) },
+            { label: "Focus areas", value: focusAreas.join(", ") }
+          ]}
+        />
+        <Text size="sm" c="dimmed">
+          {grant.summary}
+        </Text>
+        <Group gap="xs" wrap="wrap">
+          <Button component="a" href={grant.url} target="_blank" rel="noreferrer" variant="default" size="xs">
+            View on Grants.gov
+          </Button>
+          {grant.eligibilities.some((eligibility) => eligibility.states.length > 0) && (
+            <Badge variant="light" color="midnight">
+              Eligible states: {grant.eligibilities.flatMap((eligibility) => eligibility.states).join(", ")}
+            </Badge>
+          )}
+        </Group>
+      </Stack>
+    </Paper>
   );
 }
 
-function toggleArrayValue(list: string[], value: string) {
-  return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+type SimpleStatsProps = {
+  items: Array<{ label: string; value: string | number | null }>;
+};
+
+function SimpleStats({ items }: SimpleStatsProps) {
+  return (
+    <Grid>
+      {items.map((item) => (
+        <Grid.Col key={item.label} span={{ base: 12, sm: 6 }}>
+          <Text size="xs" fw={600} c="dimmed" tt="uppercase">
+            {item.label}
+          </Text>
+          <Text fw={600}>{item.value ?? "—"}</Text>
+        </Grid.Col>
+      ))}
+    </Grid>
+  );
 }
 
 function countMatches(grant: GrantOpportunity, filters: FiltersState) {

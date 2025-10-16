@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
+import { Button, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+
 import { useAuth } from "@/components/auth-context";
 
 export default function LoginPage() {
@@ -23,76 +25,67 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 px-6 py-12">
-      <div className="mx-auto flex w-full max-w-md flex-col gap-6 rounded-3xl border border-white/10 bg-slate-900/60 p-6 text-sm text-slate-200">
-        <header className="space-y-2 text-center">
-          <h1 className="text-2xl font-semibold text-white">Sign in to Grant Tracker</h1>
-          <p className="text-xs text-slate-400">
+    <Stack align="center" justify="center" py="xl" mx="auto" maw={420}>
+      <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+        <Stack gap="md" align="center" ta="center">
+          <Title order={2}>Sign in to Grant Tracker</Title>
+          <Text size="sm" c="dimmed">
             Use your Supabase credentials. Admins can invite teammates from org settings.
-          </p>
-        </header>
-        {isLoading ? (
-          <p className="text-center text-sm text-slate-300">Loading…</p>
-        ) : user ? (
-          <div className="space-y-4 text-sm">
-            <p className="font-semibold text-white">You&apos;re signed in as {user.email ?? user.fullName}</p>
-            <p className="text-xs text-slate-400">
-              Membership: {membership?.org?.name ?? "No organization"} ({membership?.role ?? ""})
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/my-tasks"
-                className="rounded-lg bg-emerald-500/20 px-4 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-500/30 hover:text-white"
-              >
-                View my tasks
-              </Link>
-              <button
-                type="button"
-                onClick={() => signOut()}
-                className="rounded-lg border border-white/15 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:border-rose-400 hover:text-white"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Email</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-                className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
-              />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Password</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-                className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
-              />
-            </label>
-            <button
-              type="submit"
-              className="w-full rounded-lg bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-500/30 hover:text-white"
-            >
-              Sign in
-            </button>
-          </form>
-        )}
-        {message && <p className="text-center text-xs text-slate-400">{message}</p>}
-        <Link
-          href="/"
-          className="text-center text-xs font-semibold text-slate-300 underline decoration-dotted underline-offset-4"
-        >
-          Return to marketing site
-        </Link>
-      </div>
-    </div>
+          </Text>
+        </Stack>
+        <Stack gap="md" mt="lg">
+          {isLoading ? (
+            <Text size="sm" c="dimmed" ta="center">
+              Loading…
+            </Text>
+          ) : user ? (
+            <Stack gap="sm">
+              <Text fw={600}>You&apos;re signed in as {user.email ?? user.fullName}</Text>
+              <Text size="xs" c="dimmed">
+                Membership: {membership?.org?.name ?? "No organization"} ({membership?.role ?? ""})
+              </Text>
+              <Group justify="center" gap="sm">
+                <Button component={Link} href="/my-tasks" size="sm" variant="light" color="teal">
+                  View my tasks
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => signOut()}>
+                  Sign out
+                </Button>
+              </Group>
+            </Stack>
+          ) : (
+            <Paper component="form" withBorder radius="lg" p="md" bg="rgba(6,14,32,0.6)" onSubmit={handleSubmit}>
+              <Stack gap="sm">
+                <TextInput
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.currentTarget.value)}
+                  required
+                />
+                <TextInput
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.currentTarget.value)}
+                  required
+                />
+                <Button type="submit" fullWidth>
+                  Sign in
+                </Button>
+              </Stack>
+            </Paper>
+          )}
+          {message && (
+            <Text size="xs" c="dimmed" ta="center">
+              {message}
+            </Text>
+          )}
+          <Button component={Link} href="/" variant="subtle" size="xs">
+            Return to marketing site
+          </Button>
+        </Stack>
+      </Paper>
+    </Stack>
   );
 }

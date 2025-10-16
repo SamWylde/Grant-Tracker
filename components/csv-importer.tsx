@@ -3,6 +3,20 @@
 import { useMemo, useState } from "react";
 
 import {
+  Alert,
+  Badge,
+  Button,
+  FileInput,
+  Group,
+  Paper,
+  SimpleGrid,
+  Stack,
+  Table,
+  Text,
+  Title
+} from "@mantine/core";
+
+import {
   useGrantContext,
   type ManualGrantInput,
   type Priority,
@@ -94,9 +108,7 @@ function parseDateCell(value: string, rowIndex: number, column: string, issues: 
   }
   const year = parsed.getUTCFullYear();
   if (year < 1970 || year > 2100) {
-    issues.push(
-      `Row ${rowIndex}: ${column} date "${value}" must be between 1970 and 2100 to avoid scheduling errors.`
-    );
+    issues.push(`Row ${rowIndex}: ${column} date "${value}" must be between 1970 and 2100 to avoid scheduling errors.`);
     return null;
   }
   return parsed.toISOString();
@@ -160,10 +172,7 @@ function buildTasks(
   rowIndex: number,
   issues: string[]
 ) {
-  const taskBuckets = new Map<
-    number,
-    { label?: string; due?: string | null; owner?: string; status?: string | null }
-  >();
+  const taskBuckets = new Map<number, { label?: string; due?: string | null; owner?: string; status?: string | null }>();
   headers.forEach((header) => {
     if (!header.toLowerCase().startsWith(TASK_COLUMN_HINT.toLowerCase())) return;
     const normalized = header.trim();
@@ -193,9 +202,7 @@ function buildTasks(
   for (const [index, bucket] of taskBuckets.entries()) {
     if (!bucket.label) continue;
     const dueDate = bucket.due ?? null;
-    const ownerEmail = bucket.owner
-      ? sanitizeOwnerEmail(bucket.owner, rowIndex, issues)
-      : undefined;
+    const ownerEmail = bucket.owner ? sanitizeOwnerEmail(bucket.owner, rowIndex, issues) : undefined;
     tasks.push({
       label: bucket.label,
       dueDate,
@@ -276,42 +283,48 @@ export function CsvImporter() {
   );
 
   return (
-    <section className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold text-white">Import grants from CSV</h1>
-        <p className="text-sm text-slate-300">
+    <Stack gap="lg">
+      <Stack gap={4}>
+        <Title order={2}>Import grants from CSV</Title>
+        <Text size="sm" c="dimmed">
           Upload your spreadsheet export and we&apos;ll map deadlines, owners, and checklist tasks into Grant Tracker.
-        </p>
-      </header>
-      <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 text-sm text-slate-200">
-        <h2 className="text-base font-semibold text-white">Column mapping</h2>
-        <p className="mt-2 text-xs text-slate-400">
-          Use the headers below in your CSV to ensure we can align every field.
-        </p>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-          {columnGuidance.map((item) => (
-            <li key={item.key} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-400">{item.key}</p>
-              <p className="mt-1 font-semibold text-white">{item.header}</p>
-            </li>
-          ))}
-          <li className="rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4">
-            <p className="text-xs uppercase tracking-wide text-emerald-200">Checklist tasks</p>
-            <p className="mt-1 text-sm text-emerald-100">
-              Add columns like “Task 1”, “Task 1 Due”, and “Task 1 Owner” (repeat for additional tasks). We&apos;ll build
-              checklists automatically.
-            </p>
-          </li>
-        </ul>
-      </div>
-      <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-6 text-sm text-slate-200">
-        <label className="flex flex-col gap-3">
-          <span className="text-sm font-semibold text-white">Upload CSV file</span>
-          <input
-            type="file"
+        </Text>
+      </Stack>
+      <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+        <Stack gap="md">
+          <Title order={4}>Column mapping</Title>
+          <Text size="xs" c="dimmed">
+            Use the headers below in your CSV to ensure we can align every field.
+          </Text>
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+            {columnGuidance.map((item) => (
+              <Paper key={item.key} withBorder radius="lg" p="md" bg="rgba(6,14,32,0.6)">
+                <Text size="xs" c="dimmed" tt="uppercase">
+                  {item.key}
+                </Text>
+                <Text fw={600}>{item.header}</Text>
+              </Paper>
+            ))}
+            <Paper withBorder radius="lg" p="md" bg="rgba(16, 89, 70, 0.4)">
+              <Text size="xs" c="teal.2" tt="uppercase" fw={600}>
+                Checklist tasks
+              </Text>
+              <Text size="sm" c="teal.1" mt={4}>
+                Add columns like “Task 1”, “Task 1 Due”, and “Task 1 Owner” (repeat for additional tasks). We&apos;ll build
+                checklists automatically.
+              </Text>
+            </Paper>
+          </SimpleGrid>
+        </Stack>
+      </Paper>
+      <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+        <Stack gap="md">
+          <FileInput
+            label="Upload CSV file"
+            placeholder="Select a .csv file"
             accept=".csv,text/csv"
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
+            disabled={isParsing || isImporting}
+            onChange={async (file) => {
               setErrors([]);
               setRows([]);
               setResult(null);
@@ -325,19 +338,13 @@ export function CsvImporter() {
                   return;
                 }
                 if (parsed.length - 1 > MAX_ROWS) {
-                  setErrors([
-                    `This file contains ${parsed.length - 1} data rows. Please limit uploads to ${MAX_ROWS} rows at a time.`
-                  ]);
+                  setErrors([`This file contains ${parsed.length - 1} data rows. Please limit uploads to ${MAX_ROWS} rows at a time.`]);
                   return;
                 }
                 const headers = parsed[0].map(normalizeHeader);
-                const missingRequired = REQUIRED_COLUMNS.filter(
-                  (column) => !headers.includes(column)
-                );
+                const missingRequired = REQUIRED_COLUMNS.filter((column) => !headers.includes(column));
                 if (missingRequired.length > 0) {
-                  setErrors([
-                    `Missing required columns: ${missingRequired.join(", ")}`
-                  ]);
+                  setErrors([`Missing required columns: ${missingRequired.join(", ")}`]);
                   return;
                 }
                 const parsedRows: ParsedRow[] = [];
@@ -365,123 +372,112 @@ export function CsvImporter() {
                 setErrors([`Failed to read file: ${message}`]);
               } finally {
                 setIsParsing(false);
-                event.target.value = "";
               }
             }}
-            className="rounded-lg border border-dashed border-white/20 bg-slate-950/60 px-4 py-3 text-sm text-white"
-            disabled={isParsing || isImporting}
           />
-        </label>
-        {isParsing && (
-          <p className="mt-2 text-xs text-slate-400">Parsing file…</p>
-        )}
-        {rows.length > 0 && (
-          <div className="mt-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-300">{rows.length} grants ready to import.</p>
-              <button
-                type="button"
-                onClick={async () => {
-                  if (isImporting) return;
-                  setIsImporting(true);
-                  try {
-                    const payload: (ManualGrantInput & { id: string })[] = rows.map((row) => ({
-                      id: row.id,
-                      title: row.title,
-                      agency: row.agency,
-                      opportunityNumber: row.opportunityNumber,
-                      closeDate: row.closeDate,
-                      owner: row.owner,
-                      notes: row.notes,
-                      priority: normalizePriority(row.priority),
-                      stage: normalizeStage(row.stage),
-                      focusAreas: row.focusAreas,
-                      tasks: row.tasks.map((task) => ({
-                        label: task.label,
-                        dueDate: task.dueDate,
-                        assigneeEmail: task.assignee ?? null,
-                        status: normalizeTaskStatus(task.status)
-                      })),
-                      source: "imported"
-                    }));
-                    const outcome = bulkImportGrants(payload);
-                    setResult(outcome);
-                  } catch (error) {
-                    const message =
-                      error instanceof Error
-                        ? error.message
-                        : "Unexpected error while importing grants.";
-                    setErrors((prev) => [...prev, `Import failed: ${message}`]);
-                  } finally {
-                    setIsImporting(false);
-                  }
-                }}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                  isImporting
-                    ? "bg-emerald-500/10 text-emerald-200"
-                    : "bg-emerald-500/20 text-emerald-100 hover:bg-emerald-500/30 hover:text-white"
-                }`}
-                disabled={isImporting || rows.length === 0}
-                aria-busy={isImporting}
-              >
-                {isImporting ? "Importing…" : "Import to workspace"}
-              </button>
-            </div>
-            <div className="overflow-hidden rounded-2xl border border-white/10">
-              <table className="min-w-full divide-y divide-white/10 text-left text-xs">
-                <thead className="bg-white/5 uppercase tracking-wide text-slate-300">
-                  <tr>
-                    <th className="px-3 py-2">Grant</th>
-                    <th className="px-3 py-2">Deadline</th>
-                    <th className="px-3 py-2">Owner</th>
-                    <th className="px-3 py-2">Tasks</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/10 text-slate-200">
+          {isParsing && (
+            <Text size="xs" c="dimmed">
+              Parsing file…
+            </Text>
+          )}
+          {rows.length > 0 && (
+            <Stack gap="md">
+              <Group justify="space-between" align="center">
+                <Text size="sm" c="dimmed">
+                  {rows.length} grants ready to import.
+                </Text>
+                <Button
+                  size="sm"
+                  loading={isImporting}
+                  onClick={async () => {
+                    if (isImporting) return;
+                    setIsImporting(true);
+                    try {
+                      const payload: (ManualGrantInput & { id: string })[] = rows.map((row) => ({
+                        id: row.id,
+                        title: row.title,
+                        agency: row.agency,
+                        opportunityNumber: row.opportunityNumber,
+                        closeDate: row.closeDate,
+                        owner: row.owner,
+                        notes: row.notes,
+                        priority: normalizePriority(row.priority),
+                        stage: normalizeStage(row.stage),
+                        focusAreas: row.focusAreas,
+                        tasks: row.tasks.map((task) => ({
+                          label: task.label,
+                          dueDate: task.dueDate,
+                          assigneeEmail: task.assignee ?? null,
+                          status: normalizeTaskStatus(task.status)
+                        })),
+                        source: "imported"
+                      }));
+                      const outcome = bulkImportGrants(payload);
+                      setResult(outcome);
+                    } catch (error) {
+                      const message =
+                        error instanceof Error ? error.message : "Unexpected error while importing grants.";
+                      setErrors((prev) => [...prev, `Import failed: ${message}`]);
+                    } finally {
+                      setIsImporting(false);
+                    }
+                  }}
+                >
+                  Import to workspace
+                </Button>
+              </Group>
+              <Table highlightOnHover withColumnBorders>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Grant</Table.Th>
+                    <Table.Th>Deadline</Table.Th>
+                    <Table.Th>Owner</Table.Th>
+                    <Table.Th>Tasks</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
                   {rows.map((row) => (
-                    <tr key={row.id}>
-                      <td className="px-3 py-2">
-                        <p className="font-semibold text-white">{row.title}</p>
-                        <p className="text-xs text-slate-400">{row.agency}</p>
-                      </td>
-                      <td className="px-3 py-2 text-xs text-slate-300">
-                        {row.closeDate ? new Date(row.closeDate).toLocaleDateString() : "-"}
-                      </td>
-                      <td className="px-3 py-2 text-xs text-slate-300">{row.owner ?? "Unassigned"}</td>
-                      <td className="px-3 py-2 text-xs text-slate-300">
+                    <Table.Tr key={row.id}>
+                      <Table.Td>
+                        <Text fw={600}>{row.title}</Text>
+                        <Text size="xs" c="dimmed">
+                          {row.agency}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>{row.closeDate ? new Date(row.closeDate).toLocaleDateString() : "-"}</Table.Td>
+                      <Table.Td>{row.owner ?? "Unassigned"}</Table.Td>
+                      <Table.Td>
                         {row.tasks.length === 0
                           ? "No checklist items"
-                          : row.tasks
-                              .map((task) => `${task.label}${task.assignee ? ` → ${task.assignee}` : ""}`)
-                              .join(", ")}
-                      </td>
-                    </tr>
+                          : row.tasks.map((task) => `${task.label}${task.assignee ? ` → ${task.assignee}` : ""}`).join(", ")}
+                      </Table.Td>
+                    </Table.Tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-        {errors.length > 0 && (
-          <div className="mt-4 space-y-2 rounded-2xl border border-rose-400/40 bg-rose-500/10 p-4 text-xs text-rose-100">
-            <p className="font-semibold">We found some issues:</p>
-            <ul className="list-disc space-y-1 pl-4">
-              {errors.map((error) => (
-                <li key={error}>{error}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {result && (
-          <div className="mt-4 space-y-2 rounded-2xl border border-emerald-400/40 bg-emerald-500/10 p-4 text-xs text-emerald-100">
-            <p className="font-semibold">Import complete</p>
-            <p>
-              Added or updated {result.imported.length} grants.
-              {result.skipped.length > 0 && ` Skipped ${result.skipped.length} duplicates or incomplete rows.`}
-            </p>
-          </div>
-        )}
-      </div>
-    </section>
+                </Table.Tbody>
+              </Table>
+            </Stack>
+          )}
+          {errors.length > 0 && (
+            <Alert color="red" variant="light" title="We found some issues" icon={<Badge color="red" radius="sm">!</Badge>}>
+              <Stack gap={4}>
+                {errors.map((error) => (
+                  <Text key={error} size="xs">
+                    • {error}
+                  </Text>
+                ))}
+              </Stack>
+            </Alert>
+          )}
+          {result && (
+            <Alert color="teal" variant="light" title="Import complete">
+              <Text size="sm">
+                Added or updated {result.imported.length} grants.
+                {result.skipped.length > 0 && ` Skipped ${result.skipped.length} duplicates or incomplete rows.`}
+              </Text>
+            </Alert>
+          )}
+        </Stack>
+      </Paper>
+    </Stack>
   );
 }

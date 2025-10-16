@@ -3,6 +3,24 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import {
+  Anchor,
+  Badge,
+  Button,
+  Card,
+  Divider,
+  Grid,
+  Group,
+  Paper,
+  SegmentedControl,
+  Stack,
+  Switch,
+  Text,
+  TextInput,
+  Textarea,
+  Title
+} from "@mantine/core";
+
 import { describeOffset, formatReminderDate } from "@/lib/reminders";
 
 import {
@@ -49,260 +67,286 @@ export function GrantDetailView({ grantId }: { grantId: string }) {
 
   if (!grant) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 py-16 text-center">
-        <h1 className="text-2xl font-semibold text-white">We couldn&apos;t find that grant.</h1>
-        <p className="text-sm text-slate-300">
+      <Stack align="center" justify="center" gap="md" py="xl">
+        <Title order={2}>We couldn&apos;t find that grant.</Title>
+        <Text size="sm" c="dimmed" maw={360} ta="center">
           Save an opportunity from the discovery workspace first, then open it here to manage details.
-        </p>
-        <button
-          onClick={() => router.push("/#workspace")}
-          className="mx-auto rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:border-white/40 hover:text-white"
+        </Text>
+        <Button variant="outline" onClick={() => router.push("/#workspace")}
         >
           Go back to workspace
-        </button>
-      </div>
+        </Button>
+      </Stack>
     );
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 py-10">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-slate-400">{grant.agency}</p>
-          <h1 className="text-3xl font-semibold text-white">{grant.title}</h1>
-          <p className="mt-2 max-w-3xl text-sm text-slate-300">{grant.summary}</p>
-        </div>
-        <button
-          onClick={() => router.back()}
-          className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:border-white/40 hover:text-white"
-        >
+    <Stack gap="xl" py="xl" maw={1100} mx="auto">
+      <Group justify="space-between" align="flex-start">
+        <Stack gap={4}>
+          <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+            {grant.agency}
+          </Text>
+          <Title order={1}>{grant.title}</Title>
+          <Text size="sm" c="dimmed" maw={720}>
+            {grant.summary}
+          </Text>
+        </Stack>
+        <Button variant="outline" onClick={() => router.back()}>
           Back
-        </button>
-      </div>
-      <section className="grid gap-6 lg:grid-cols-[2fr,1fr]">
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-5">
-            <h2 className="text-lg font-semibold text-white">Pipeline settings</h2>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <Field label="Stage">
-                <select
-                  value={grant.stage}
-                  onChange={(event) => updateGrantStage(grantId, event.target.value as Stage)}
-                  className="w-full rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-white"
-                >
-                  {STAGE_OPTIONS.map((stage) => (
-                    <option key={stage} value={stage}>
-                      {stage}
-                    </option>
+        </Button>
+      </Group>
+      <Grid gutter="xl">
+        <Grid.Col span={{ base: 12, lg: 8 }}>
+          <Stack gap="lg">
+            <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+              <Stack gap="md">
+                <Title order={3}>Pipeline settings</Title>
+                <Grid gutter="md">
+                  <Grid.Col span={{ base: 12, sm: 6 }}>
+                    <SelectField label="Stage">
+                      <SegmentedControl
+                        fullWidth
+                        data={STAGE_OPTIONS.map((stage) => ({ label: stage, value: stage }))}
+                        value={grant.stage}
+                        onChange={(value) => updateGrantStage(grantId, value as Stage)}
+                      />
+                    </SelectField>
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, sm: 6 }}>
+                    <SelectField label="Owner">
+                      <TextInput
+                        value={grant.owner ?? ""}
+                        onChange={(event) => updateGrantDetails(grantId, { owner: event.currentTarget.value })}
+                        placeholder="Assign a teammate"
+                      />
+                    </SelectField>
+                  </Grid.Col>
+                  <Grid.Col span={12}>
+                    <SelectField label="Priority">
+                      <SegmentedControl
+                        fullWidth
+                        data={PRIORITY_OPTIONS.map((priority) => ({ label: priority, value: priority }))}
+                        value={grant.priority}
+                        onChange={(value) => updateGrantDetails(grantId, { priority: value as Priority })}
+                      />
+                    </SelectField>
+                  </Grid.Col>
+                </Grid>
+                <SelectField label="Notes">
+                  <Textarea
+                    value={grant.notes ?? ""}
+                    onChange={(event) => updateGrantDetails(grantId, { notes: event.currentTarget.value })}
+                    placeholder="Capture strategy, required attachments, or reminders"
+                    autosize
+                    minRows={4}
+                  />
+                </SelectField>
+              </Stack>
+            </Paper>
+
+            <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+              <Stack gap="md">
+                <Title order={3}>Deadline management & reminders</Title>
+                <Text size="sm" c="dimmed">
+                  Track LOI, application, report, and custom milestones. Set due dates once and Grant Tracker will schedule reminders at T-30/14/7/3/1 and day-of across email and SMS without duplicating alerts.
+                </Text>
+                <Stack gap="md">
+                  {milestones.map((milestone) => (
+                    <MilestoneEditor
+                      key={milestone.id}
+                      milestone={milestone}
+                      timezone={timezone}
+                      onUpdate={(updates) => updateMilestone(grantId, milestone.id, updates)}
+                      onRemove={() => removeMilestone(grantId, milestone.id)}
+                      isCustom={milestone.type === "Custom"}
+                      defaultChannels={orgPreferences.reminderChannels}
+                      grantTitle={grant.title}
+                    />
                   ))}
-                </select>
-              </Field>
-              <Field label="Owner">
-                <input
-                  type="text"
-                  value={grant.owner ?? ""}
-                  onChange={(event) => updateGrantDetails(grantId, { owner: event.target.value })}
-                  placeholder="Assign a teammate"
-                  className="w-full rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-white placeholder:text-slate-500"
-                />
-              </Field>
-              <Field label="Priority">
-                <div className="flex gap-2">
-                  {PRIORITY_OPTIONS.map((priority) => {
-                    const isActive = grant.priority === priority;
-                    return (
-                      <button
-                        key={priority}
-                        type="button"
-                        onClick={() => updateGrantDetails(grantId, { priority })}
-                        className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
-                          isActive
-                            ? "border-emerald-400 bg-emerald-500/10 text-emerald-100"
-                            : "border-white/10 bg-white/5 text-slate-200 hover:border-emerald-400 hover:text-white"
-                        }`}
-                      >
-                        {priority}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Field>
-            </div>
-            <Field label="Notes">
-              <textarea
-                value={grant.notes ?? ""}
-                onChange={(event) => updateGrantDetails(grantId, { notes: event.target.value })}
-                className="mt-2 h-32 w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-white placeholder:text-slate-500"
-                placeholder="Capture strategy, required attachments, or reminders"
-              />
-            </Field>
-          </div>
-          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-5">
-            <header className="flex flex-col gap-2">
-              <h2 className="text-lg font-semibold text-white">Deadline management & reminders</h2>
-              <p className="text-sm text-slate-300">
-                Track LOI, application, report, and custom milestones. Set due dates once and
-                Grant Tracker will schedule reminders at T-30/14/7/3/1 and day-of across email and SMS without duplicating alerts.
-              </p>
-            </header>
-            <div className="mt-5 space-y-4">
-              {milestones.map((milestone) => (
-                <MilestoneEditor
-                  key={milestone.id}
-                  milestone={milestone}
-                  timezone={timezone}
-                  onUpdate={(updates) => updateMilestone(grantId, milestone.id, updates)}
-                  onRemove={() => removeMilestone(grantId, milestone.id)}
-                  isCustom={milestone.type === "Custom"}
-                  defaultChannels={orgPreferences.reminderChannels}
-                  grantTitle={grant.title}
-                />
-              ))}
-            </div>
-            <form
-              className="mt-5 flex flex-col gap-3 rounded-2xl border border-dashed border-white/10 bg-slate-950/50 p-4 text-sm"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const trimmed = newMilestoneLabel.trim();
-                if (!trimmed) return;
-                addMilestone(grantId, { label: trimmed, type: "Custom" });
-                setNewMilestoneLabel("");
-              }}
-            >
-              <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Add custom milestone
-              </label>
-              <div className="flex flex-col gap-3 md:flex-row">
-                <input
-                  value={newMilestoneLabel}
-                  onChange={(event) => setNewMilestoneLabel(event.target.value)}
-                  placeholder="Site visit, board review, etc."
-                  className="flex-1 rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-white placeholder:text-slate-500"
-                />
-                <button
-                  type="submit"
-                  className="rounded-lg border border-emerald-400/60 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300 hover:text-white"
+                </Stack>
+                <Paper
+                  component="form"
+                  withBorder
+                  radius="lg"
+                  p="md"
+                  bg="rgba(6,14,32,0.6)"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const trimmed = newMilestoneLabel.trim();
+                    if (!trimmed) return;
+                    addMilestone(grantId, { label: trimmed, type: "Custom" });
+                    setNewMilestoneLabel("");
+                  }}
                 >
-                  Add milestone
-                </button>
-              </div>
-            </form>
-          </div>
-          <TaskChecklist grantId={grantId} />
-          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-5">
-            <h2 className="text-lg font-semibold text-white">Attachments & links</h2>
-            <p className="mt-2 text-sm text-slate-300">
-              Store URLs for working documents, budgets, or support letters so the whole team can find them quickly.
-            </p>
-            <form
-              className="mt-3 flex flex-col gap-3 md:flex-row"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const trimmed = newAttachment.trim();
-                if (!trimmed) return;
-                const existing = grant.attachments ?? [];
-                updateGrantDetails(grantId, {
-                  attachments: Array.from(new Set([...existing, trimmed]))
-                });
-                setNewAttachment("");
-              }}
-            >
-              <input
-                value={newAttachment}
-                onChange={(event) => setNewAttachment(event.target.value)}
-                placeholder="https://"
-                className="flex-1 rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-white placeholder:text-slate-500"
-              />
-              <button
-                type="submit"
-                className="rounded-lg border border-emerald-400/50 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-100 transition hover:border-emerald-300 hover:text-white"
+                  <Stack gap="sm">
+                    <Text size="xs" fw={600} tt="uppercase">
+                      Add custom milestone
+                    </Text>
+                    <Group gap="sm" wrap="wrap">
+                      <TextInput
+                        style={{ flex: 1, minWidth: 220 }}
+                        value={newMilestoneLabel}
+                        onChange={(event) => setNewMilestoneLabel(event.currentTarget.value)}
+                        placeholder="Site visit, board review, etc."
+                      />
+                      <Button type="submit" size="sm">
+                        Add milestone
+                      </Button>
+                    </Group>
+                  </Stack>
+                </Paper>
+              </Stack>
+            </Paper>
+
+            <TaskChecklist grantId={grantId} />
+
+            <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+              <Stack gap="md">
+                <Title order={3}>Attachments & links</Title>
+                <Text size="sm" c="dimmed">
+                  Store URLs for working documents, budgets, or support letters so the whole team can find them quickly.
+                </Text>
+                <Group
+                  component="form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const trimmed = newAttachment.trim();
+                    if (!trimmed) return;
+                    const existing = grant.attachments ?? [];
+                    updateGrantDetails(grantId, {
+                      attachments: Array.from(new Set([...existing, trimmed]))
+                    });
+                    setNewAttachment("");
+                  }}
+                  gap="sm"
+                  wrap="wrap"
+                >
+                  <TextInput
+                    style={{ flex: 1, minWidth: 240 }}
+                    value={newAttachment}
+                    onChange={(event) => setNewAttachment(event.currentTarget.value)}
+                    placeholder="https://"
+                  />
+                  <Button type="submit" size="sm">
+                    Add link
+                  </Button>
+                </Group>
+                <Stack gap="sm">
+                  {(grant.attachments ?? []).map((attachment) => (
+                    <Group
+                      key={attachment}
+                      justify="space-between"
+                      align="center"
+                      px="sm"
+                      py="xs"
+                      bg="rgba(6,14,32,0.6)"
+                      style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)" }}
+                    >
+                      <Anchor href={attachment} target="_blank" rel="noreferrer" size="sm">
+                        {attachment}
+                      </Anchor>
+                      <Button
+                        variant="subtle"
+                        color="red"
+                        size="xs"
+                        onClick={() => {
+                          const filtered = (grant.attachments ?? []).filter((item) => item !== attachment);
+                          updateGrantDetails(grantId, { attachments: filtered });
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </Group>
+                  ))}
+                  {(grant.attachments?.length ?? 0) === 0 && (
+                    <Text size="xs" c="dimmed">
+                      No attachments saved yet.
+                    </Text>
+                  )}
+                </Stack>
+              </Stack>
+            </Paper>
+          </Stack>
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, lg: 4 }}>
+          <Stack gap="lg">
+            <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+              <Title order={4}>Key facts</Title>
+              <Stack gap="sm" mt="sm">
+                <Fact label="Opportunity #" value={grant.opportunityNumber} />
+                <Fact
+                  label="Due date"
+                  value={grant.closeDate ? new Date(grant.closeDate).toLocaleDateString() : "Rolling"}
+                />
+                <Fact
+                  label="Award ceiling"
+                  value={
+                    grant.awardCeiling
+                      ? new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "USD",
+                          maximumFractionDigits: 0
+                        }).format(grant.awardCeiling)
+                      : "Not specified"
+                  }
+                />
+                <Fact label="Focus areas" value={grant.focusAreas.join(", ") || "General"} />
+              </Stack>
+              <Button
+                component="a"
+                href={grant.url ?? "#"}
+                target="_blank"
+                rel="noreferrer"
+                variant="outline"
+                mt="md"
               >
-                Add link
-              </button>
-            </form>
-            <ul className="mt-4 space-y-2 text-sm text-slate-200">
-              {(grant.attachments ?? []).map((attachment) => (
-                <li key={attachment} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 px-3 py-2">
-                  <a
-                    href={attachment}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="truncate text-emerald-200 underline-offset-2 hover:underline"
-                  >
-                    {attachment}
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const filtered = (grant.attachments ?? []).filter((item) => item !== attachment);
-                      updateGrantDetails(grantId, { attachments: filtered });
-                    }}
-                    className="text-xs text-slate-400 transition hover:text-rose-300"
-                  >
-                    Remove
-                  </button>
-                </li>
-              ))}
-              {grant.attachments?.length === 0 && <li className="text-xs text-slate-400">No attachments saved yet.</li>}
-            </ul>
-          </div>
-        </div>
-        <aside className="space-y-6">
-          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-5 text-sm text-slate-300">
-            <h2 className="text-lg font-semibold text-white">Key facts</h2>
-            <dl className="mt-3 space-y-2">
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Opportunity #</dt>
-                <dd className="text-white">{grant.opportunityNumber}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Due date</dt>
-                <dd className="text-white">{grant.closeDate ? new Date(grant.closeDate).toLocaleDateString() : "Rolling"}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Award ceiling</dt>
-                <dd className="text-white">
-                  {grant.awardCeiling
-                    ? new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: "USD",
-                        maximumFractionDigits: 0
-                      }).format(grant.awardCeiling)
-                    : "Not specified"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Focus areas</dt>
-                <dd className="text-white">{grant.focusAreas.join(", ")}</dd>
-              </div>
-            </dl>
-            <a
-              href={grant.url ?? "#"}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex items-center justify-center rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-slate-200 transition hover:border-white/40 hover:text-white"
-            >
-              View opportunity on Grants.gov
-            </a>
-          </div>
-          <div className="rounded-3xl border border-white/10 bg-slate-900/60 p-5 text-sm text-slate-300">
-            <h2 className="text-lg font-semibold text-white">Stage history</h2>
-            <ul className="mt-3 space-y-2">
-              {history.map((entry, index) => (
-                <li key={`${entry.stage}-${index}`} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-                  <p className="text-xs uppercase tracking-wide text-slate-400">{entry.stage}</p>
-                  <p className="text-sm text-white">{new Date(entry.changedAt).toLocaleString()}</p>
-                  {entry.note && <p className="text-xs text-slate-300">{entry.note}</p>}
-                </li>
-              ))}
-              {history.length === 0 && <li className="text-xs text-slate-400">No movements recorded yet.</li>}
-            </ul>
-          </div>
-        </aside>
-      </section>
-    </div>
+                View opportunity on Grants.gov
+              </Button>
+            </Paper>
+            <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+              <Title order={4}>Stage history</Title>
+              <Stack gap="sm" mt="sm">
+                {history.length === 0 && (
+                  <Text size="xs" c="dimmed">
+                    No movements recorded yet.
+                  </Text>
+                )}
+                {history.map((entry, index) => (
+                  <Card key={`${entry.stage}-${index}`} withBorder radius="md" bg="rgba(6,14,32,0.6)" padding="md">
+                    <Stack gap={4}>
+                      <Badge size="xs" variant="light" color="midnight">
+                        {entry.stage}
+                      </Badge>
+                      <Text size="sm" fw={500}>
+                        {new Date(entry.changedAt).toLocaleString()}
+                      </Text>
+                      {entry.note && (
+                        <Text size="xs" c="dimmed">
+                          {entry.note}
+                        </Text>
+                      )}
+                    </Stack>
+                  </Card>
+                ))}
+              </Stack>
+            </Paper>
+          </Stack>
+        </Grid.Col>
+      </Grid>
+    </Stack>
   );
 }
+
+type MilestoneEditorProps = {
+  milestone: Milestone;
+  timezone: string;
+  onUpdate: (updates: Partial<Milestone>) => void;
+  onRemove: () => void;
+  isCustom: boolean;
+  defaultChannels: Milestone["reminderChannels"];
+  grantTitle: string;
+};
 
 function MilestoneEditor({
   milestone,
@@ -312,162 +356,174 @@ function MilestoneEditor({
   isCustom,
   defaultChannels,
   grantTitle
-}: {
-  milestone: Milestone;
-  timezone: string;
-  onUpdate: (updates: Partial<Milestone>) => void;
-  onRemove: () => void;
-  isCustom: boolean;
-  defaultChannels: Milestone["reminderChannels"];
-  grantTitle: string;
-}) {
+}: MilestoneEditorProps) {
   const channelOptions: Milestone["reminderChannels"] = ["email", "sms"];
   return (
-    <article className="space-y-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-sm text-slate-200">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          {isCustom ? (
-            <input
-              value={milestone.label}
-              onChange={(event) => onUpdate({ label: event.target.value })}
-              className="rounded-lg border border-white/10 bg-transparent px-2 py-1 text-base font-semibold text-white"
-            />
-          ) : (
-            <p className="text-base font-semibold text-white">{milestone.label}</p>
+    <Paper withBorder radius="lg" p="lg" bg="rgba(6,14,32,0.6)">
+      <Stack gap="md">
+        <Group justify="space-between" align="flex-start">
+          <Stack gap={2}>
+            {isCustom ? (
+              <TextInput
+                value={milestone.label}
+                onChange={(event) => onUpdate({ label: event.currentTarget.value })}
+                label="Milestone name"
+              />
+            ) : (
+              <Stack gap={2}>
+                <Text fw={600}>{milestone.label}</Text>
+                <Text size="xs" c="dimmed" tt="uppercase">
+                  {milestone.type === "Custom" ? "Custom milestone" : milestone.type}
+                </Text>
+              </Stack>
+            )}
+          </Stack>
+          {isCustom && (
+            <Button variant="subtle" color="red" size="xs" onClick={onRemove}>
+              Remove
+            </Button>
           )}
-          <p className="text-xs uppercase tracking-wide text-slate-400">
-            {milestone.type === "Custom" ? "Custom milestone" : milestone.type}
-          </p>
-        </div>
-        {isCustom && (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="text-xs font-semibold text-rose-200 underline-offset-2 hover:underline"
-          >
-            Remove
-          </button>
-        )}
-      </header>
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="flex flex-col gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Due date
-          </span>
-          <input
-            type="date"
-            value={milestone.dueDate ?? ""}
-            onChange={(event) => onUpdate({ dueDate: event.target.value || null })}
-            className="rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-white"
-          />
-        </label>
-        <label className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              Reminders
-            </span>
-            <p className="text-xs text-slate-400">Email & SMS at T-30/14/7/3/1/day-of.</p>
-          </div>
-          <input
-            type="checkbox"
-            checked={milestone.remindersEnabled}
-            onChange={(event) =>
-              onUpdate({
-                remindersEnabled: event.target.checked,
-                reminderChannels:
-                  milestone.reminderChannels.length > 0
-                    ? milestone.reminderChannels
-                    : defaultChannels.length > 0
-                    ? defaultChannels
-                    : (["email"] as Milestone["reminderChannels"])
-              })
-            }
-            className="h-4 w-4"
-          />
-        </label>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {channelOptions.map((channel) => {
-          const active = milestone.reminderChannels.includes(channel);
-          return (
-            <button
-              key={channel}
-              type="button"
-              onClick={() => {
-                if (!milestone.remindersEnabled) {
-                  onUpdate({ remindersEnabled: true });
+        </Group>
+        <Grid gutter="md">
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="Due date"
+              type="date"
+              value={milestone.dueDate ?? ""}
+              onChange={(event) => onUpdate({ dueDate: event.currentTarget.value || null })}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <Group justify="space-between" align="center" p="md" bg="rgba(2,10,28,0.7)" style={{ borderRadius: 12 }}>
+              <Stack gap={2}>
+                <Text size="xs" fw={600} tt="uppercase">
+                  Reminders
+                </Text>
+                <Text size="xs" c="dimmed">
+                  Email & SMS at T-30/14/7/3/1/day-of.
+                </Text>
+              </Stack>
+              <Switch
+                checked={milestone.remindersEnabled}
+                onChange={(event) =>
+                  onUpdate({
+                    remindersEnabled: event.currentTarget.checked,
+                    reminderChannels:
+                      milestone.reminderChannels.length > 0
+                        ? milestone.reminderChannels
+                        : defaultChannels.length > 0
+                        ? defaultChannels
+                        : (["email"] as Milestone["reminderChannels"])
+                  })
                 }
-                const next = active
-                  ? milestone.reminderChannels.filter((item) => item !== channel)
-                  : [...milestone.reminderChannels, channel];
-                onUpdate({
-                  reminderChannels: next.length > 0 ? next : [channel]
-                });
-              }}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                active
-                  ? "border-emerald-400 bg-emerald-500/10 text-emerald-200"
-                  : "border-white/10 bg-white/5 text-slate-200 hover:border-emerald-400 hover:text-white"
-              }`}
-            >
-              {channel.toUpperCase()}
-            </button>
-          );
-        })}
-      </div>
-      <div className="space-y-2 text-xs text-slate-300">
-        <p className="font-semibold text-slate-200">Scheduled notifications</p>
-        {milestone.remindersEnabled && milestone.scheduledReminders.length > 0 ? (
-          <ul className="space-y-2">
-            {milestone.scheduledReminders.map((reminder) => (
-              <li
-                key={`${milestone.id}-${reminder.channel}-${reminder.offsetDays}`}
-                className="rounded-lg border border-white/10 bg-slate-950/60 p-3"
+              />
+            </Group>
+          </Grid.Col>
+        </Grid>
+        <Group gap="xs" wrap="wrap">
+          {channelOptions.map((channel) => {
+            const active = milestone.reminderChannels.includes(channel);
+            return (
+              <Badge
+                key={channel}
+                color={active ? "teal" : "gray"}
+                variant={active ? "filled" : "outline"}
+                radius="xl"
+                style={{ cursor: "pointer" }}
+                onClick={() => {
+                  if (!milestone.remindersEnabled) {
+                    onUpdate({ remindersEnabled: true });
+                  }
+                  const next = active
+                    ? milestone.reminderChannels.filter((item) => item !== channel)
+                    : [...milestone.reminderChannels, channel];
+                  onUpdate({ reminderChannels: next.length > 0 ? next : [channel] });
+                }}
               >
-                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                  <span className="font-semibold text-white">
-                    {reminder.channel === "email" ? "Email" : "SMS"} · {describeOffset(reminder.offsetDays)}
-                  </span>
-                  <span className="text-slate-400">
-                    {formatReminderDate(reminder.sendAt, timezone)} ({timezone})
-                  </span>
-                </div>
-                {reminder.subject && (
-                  <p className="mt-1 text-[11px] text-slate-300">
-                    <span className="font-semibold text-slate-200">Subject:</span> {reminder.subject}
-                  </p>
-                )}
-                <p className="mt-1 text-[11px] text-slate-400">
-                  {reminder.preview}…
-                </p>
-                <p className="mt-2 text-[10px] uppercase tracking-wide text-slate-500">
-                  Template respects {grantTitle} timezone ({timezone}) and unsubscribe flow.
-                </p>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="rounded-lg border border-dashed border-white/10 p-3 text-slate-500">
-            {milestone.dueDate
-              ? "Enable reminders to automatically queue notifications."
-              : "Add a due date to generate reminders."}
-          </p>
-        )}
-      </div>
-    </article>
+                {channel.toUpperCase()}
+              </Badge>
+            );
+          })}
+        </Group>
+        <Stack gap="xs">
+          <Text size="xs" fw={600}>
+            Scheduled notifications
+          </Text>
+          {milestone.remindersEnabled && milestone.scheduledReminders.length > 0 ? (
+            <Stack gap="xs">
+              {milestone.scheduledReminders.map((reminder) => (
+                <Paper
+                  key={`${milestone.id}-${reminder.channel}-${reminder.offsetDays}`}
+                  withBorder
+                  radius="md"
+                  p="sm"
+                  bg="rgba(2,10,28,0.8)"
+                >
+                  <Group justify="space-between" align="center">
+                    <Text size="xs" fw={600}>
+                      {reminder.channel === "email" ? "Email" : "SMS"} · {describeOffset(reminder.offsetDays)}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                      {formatReminderDate(reminder.sendAt, timezone)} ({timezone})
+                    </Text>
+                  </Group>
+                  {reminder.subject && (
+                    <Text size="xs" c="dimmed" mt={4}>
+                      <strong>Subject:</strong> {reminder.subject}
+                    </Text>
+                  )}
+                  <Text size="xs" c="dimmed" mt={4}>
+                    {reminder.preview}…
+                  </Text>
+                  <Text size="xs" c="dimmed" mt={4}>
+                    Template respects {grantTitle} timezone ({timezone}) and unsubscribe flow.
+                  </Text>
+                </Paper>
+              ))}
+            </Stack>
+          ) : (
+            <Paper withBorder radius="md" p="md" bg="rgba(2,10,28,0.7)">
+              <Text size="xs" c="dimmed">
+                {milestone.dueDate
+                  ? "Enable reminders to automatically queue notifications."
+                  : "Add a due date to generate reminders."}
+              </Text>
+            </Paper>
+          )}
+        </Stack>
+      </Stack>
+    </Paper>
   );
 }
 
-type FieldProps = {
+type SelectFieldProps = {
   label: string;
   children: React.ReactNode;
 };
 
-function Field({ label, children }: FieldProps) {
+function SelectField({ label, children }: SelectFieldProps) {
   return (
-    <label className="flex flex-col gap-2 text-sm text-slate-300">
-      <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</span>
+    <Stack gap={4}>
+      <Text size="xs" fw={600} tt="uppercase" c="dimmed">
+        {label}
+      </Text>
       {children}
-    </label>
+    </Stack>
+  );
+}
+
+type FactProps = {
+  label: string;
+  value: string;
+};
+
+function Fact({ label, value }: FactProps) {
+  return (
+    <Stack gap={2}>
+      <Text size="xs" fw={600} tt="uppercase" c="dimmed">
+        {label}
+      </Text>
+      <Text fw={600}>{value}</Text>
+    </Stack>
   );
 }

@@ -2,6 +2,18 @@
 
 import { FormEvent, useMemo, useState } from "react";
 
+import {
+  Badge,
+  Button,
+  Checkbox,
+  Group,
+  Paper,
+  Stack,
+  Text,
+  TextInput,
+  Title
+} from "@mantine/core";
+
 import { useAuth } from "./auth-context";
 import { useGrantContext } from "./grant-context";
 
@@ -65,7 +77,7 @@ export function TaskChecklist({ grantId }: { grantId: string }) {
     setAssignee(user?.email ?? "");
   }
 
-  async function handleAddTask(event: FormEvent<HTMLFormElement>) {
+  function handleAddTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatusMessage(null);
     const trimmed = label.trim();
@@ -89,115 +101,123 @@ export function TaskChecklist({ grantId }: { grantId: string }) {
   }
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-slate-900/60 p-5">
-      <header className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold text-white">Task checklist</h2>
-        <p className="text-sm text-slate-300">
-          Assign workstreams with due dates so every collaborator knows what to tackle next.
-        </p>
-      </header>
-      <form onSubmit={handleAddTask} className="mt-5 grid gap-3 rounded-2xl border border-dashed border-white/10 bg-slate-950/60 p-4 text-sm">
-        <div className="grid gap-3 md:grid-cols-[2fr,1fr,1fr]">
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Task</span>
-            <input
-              value={label}
-              onChange={(event) => setLabel(event.target.value)}
-              placeholder="Draft narrative, gather letters of support, etc."
-              className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Due</span>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(event) => setDueDate(event.target.value)}
-              className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Assignee</span>
-            <input
-              type="email"
-              value={assignee}
-              onChange={(event) => setAssignee(event.target.value)}
-              placeholder="owner@nonprofit.org"
-              className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white placeholder:text-slate-500"
-            />
-          </label>
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <button
-            type="submit"
-            className="rounded-lg bg-sky-500/20 px-4 py-2 text-sm font-semibold text-sky-100 transition hover:bg-sky-500/30 hover:text-white"
-          >
-            Add task
-          </button>
-          {statusMessage && <p className="text-xs text-slate-400">{statusMessage}</p>}
-        </div>
-      </form>
-      <ul className="mt-6 divide-y divide-white/5 text-sm">
-        {tasks.length === 0 ? (
-          <li className="py-4 text-slate-400">No tasks yet. Add your first checklist item above.</li>
-        ) : (
-          tasks.map((task) => (
-            <li key={task.id} className="flex flex-col gap-3 py-4 md:flex-row md:items-start md:justify-between">
-              <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={task.status === "completed"}
-                  onChange={(event) => toggleTaskStatus(grantId, task.id, event.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-white/20 bg-slate-900 text-emerald-500 focus:ring-emerald-400"
-                />
-                <div>
-                  <p className={`text-sm font-medium ${task.status === "completed" ? "text-slate-400 line-through" : "text-white"}`}>
-                    {task.label}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {formatDisplayDate(task.dueDate, timezone)} • {task.assigneeEmail ? `Assigned to ${task.assigneeEmail}` : "Unassigned"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300">
-                <label className="flex items-center gap-2">
-                  Due
-                  <input
-                    type="date"
-                    value={formatDateInput(task.dueDate)}
-                    onChange={(event) =>
-                      updateTask(grantId, task.id, {
-                        dueDate: event.target.value ? new Date(event.target.value).toISOString() : null
-                      })
-                    }
-                    className="rounded border border-white/15 bg-slate-950/60 px-2 py-1 text-xs text-white"
-                  />
-                </label>
-                <label className="flex items-center gap-2">
-                  Assignee
-                  <input
-                    type="email"
-                    value={task.assigneeEmail ?? ""}
-                    onChange={(event) =>
-                      updateTask(grantId, task.id, {
-                        assigneeEmail: event.target.value || null
-                      })
-                    }
-                    className="rounded border border-white/15 bg-slate-950/60 px-2 py-1 text-xs text-white"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => removeTask(grantId, task.id)}
-                  className="rounded border border-white/15 px-3 py-1 font-semibold text-slate-200 transition hover:border-rose-400 hover:text-white"
-                >
-                  Remove
-                </button>
-              </div>
-            </li>
-          ))
-        )}
-      </ul>
-    </section>
+    <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+      <Stack gap="lg">
+        <Stack gap={4}>
+          <Title order={3}>Task checklist</Title>
+          <Text size="sm" c="dimmed">
+            Assign workstreams with due dates so every collaborator knows what to tackle next.
+          </Text>
+        </Stack>
+        <Paper
+          component="form"
+          withBorder
+          radius="lg"
+          p="md"
+          bg="rgba(6,14,32,0.6)"
+          onSubmit={handleAddTask}
+        >
+          <Stack gap="sm">
+            <Group gap="sm" grow>
+              <TextInput
+                label="Task"
+                value={label}
+                onChange={(event) => setLabel(event.currentTarget.value)}
+                placeholder="Draft narrative, gather letters of support, etc."
+              />
+              <TextInput
+                label="Due"
+                type="date"
+                value={dueDate}
+                onChange={(event) => setDueDate(event.currentTarget.value)}
+              />
+              <TextInput
+                label="Assignee"
+                type="email"
+                value={assignee}
+                onChange={(event) => setAssignee(event.currentTarget.value)}
+                placeholder="owner@nonprofit.org"
+              />
+            </Group>
+            <Group justify="space-between" align="center">
+              <Button type="submit" size="sm">
+                Add task
+              </Button>
+              {statusMessage && (
+                <Text size="xs" c="dimmed">
+                  {statusMessage}
+                </Text>
+              )}
+            </Group>
+          </Stack>
+        </Paper>
+        <Stack gap="sm">
+          {tasks.length === 0 ? (
+            <Text size="sm" c="dimmed">
+              No tasks yet. Add your first checklist item above.
+            </Text>
+          ) : (
+            tasks.map((task) => (
+              <Paper key={task.id} withBorder radius="lg" p="md" bg="rgba(6,14,32,0.6)">
+                <Stack gap="sm">
+                  <Group align="flex-start" gap="md">
+                    <Checkbox
+                      checked={task.status === "completed"}
+                      onChange={(event) => toggleTaskStatus(grantId, task.id, event.currentTarget.checked)}
+                      mt={4}
+                    />
+                    <Stack gap={4} style={{ flex: 1 }}>
+                      <Text fw={600} c={task.status === "completed" ? "dimmed" : undefined} style={task.status === "completed" ? { textDecoration: "line-through" } : undefined}>
+                        {task.label}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {formatDisplayDate(task.dueDate, timezone)} • {task.assigneeEmail ? `Assigned to ${task.assigneeEmail}` : "Unassigned"}
+                      </Text>
+                    </Stack>
+                  </Group>
+                  <Group gap="sm" wrap="wrap">
+                    <TextInput
+                      label="Due"
+                      type="date"
+                      value={formatDateInput(task.dueDate)}
+                      onChange={(event) =>
+                        updateTask(grantId, task.id, {
+                          dueDate: event.currentTarget.value ? new Date(event.currentTarget.value).toISOString() : null
+                        })
+                      }
+                      size="xs"
+                      w={160}
+                    />
+                    <TextInput
+                      label="Assignee"
+                      type="email"
+                      value={task.assigneeEmail ?? ""}
+                      onChange={(event) =>
+                        updateTask(grantId, task.id, {
+                          assigneeEmail: event.currentTarget.value || null
+                        })
+                      }
+                      size="xs"
+                      w={200}
+                    />
+                    <Button
+                      variant="subtle"
+                      color="red"
+                      size="xs"
+                      onClick={() => removeTask(grantId, task.id)}
+                    >
+                      Remove
+                    </Button>
+                    <Badge size="xs" variant="light" color={task.status === "completed" ? "teal" : "gray"}>
+                      {task.status === "completed" ? "Completed" : "Pending"}
+                    </Badge>
+                  </Group>
+                </Stack>
+              </Paper>
+            ))
+          )}
+        </Stack>
+      </Stack>
+    </Paper>
   );
 }

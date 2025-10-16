@@ -2,6 +2,8 @@
 
 import { useId, useState } from "react";
 
+import { Button, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+
 export function WaitlistForm() {
   const id = useId();
   const [submitted, setSubmitted] = useState(false);
@@ -10,64 +12,62 @@ export function WaitlistForm() {
 
   if (submitted) {
     return (
-      <div className="rounded-2xl border border-emerald-400/40 bg-emerald-400/10 p-6 text-sm text-emerald-100">
-        <p className="text-lg font-semibold text-white">You are on the list!</p>
-        <p className="mt-2">
-          Thanks for your interest. We will reach out within two business days with onboarding details.
-        </p>
-      </div>
+      <Paper withBorder radius="xl" p="xl" bg="rgba(10, 28, 60, 0.7)">
+        <Stack gap="sm">
+          <Title order={4}>You are on the list!</Title>
+          <Text size="sm" c="dimmed">
+            Thanks for your interest. We will reach out within two business days with onboarding details.
+          </Text>
+        </Stack>
+      </Paper>
     );
   }
 
   return (
-    <form
-      className="gradient-border rounded-3xl bg-slate-900/50 p-1"
+    <Paper
+      component="form"
+      withBorder
+      radius="xl"
+      p="xl"
+      bg="rgba(10, 28, 60, 0.7)"
       onSubmit={(event) => {
         event.preventDefault();
         setSubmitted(true);
       }}
     >
-      <div className="rounded-[26px] border border-white/10 bg-slate-950/80 p-6">
-        <h3 className="text-lg font-semibold text-white">Join the early access waitlist</h3>
-        <p className="mt-2 text-sm text-slate-300">
-          Tell us about your organization and we will schedule a guided onboarding session.
-        </p>
-        <div className="mt-6 space-y-4">
-          <label className="block text-sm font-medium text-slate-200" htmlFor={`${id}-email`}>
-            Work email
-          </label>
-          <input
+      <Stack gap="lg">
+        <Stack gap={4}>
+          <Title order={3}>Join the early access waitlist</Title>
+          <Text size="sm" c="dimmed">
+            Tell us about your organization and we will schedule a guided onboarding session.
+          </Text>
+        </Stack>
+        <Stack gap="sm">
+          <TextInput
             id={`${id}-email`}
+            label="Work email"
             type="email"
             required
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => setEmail(event.currentTarget.value)}
             placeholder="you@ruralnonprofit.org"
-            className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-midnight-400 focus:outline-none focus:ring-2 focus:ring-midnight-500/60"
           />
-          <label className="block text-sm font-medium text-slate-200" htmlFor={`${id}-org`}>
-            Organization name
-          </label>
-          <input
+          <TextInput
             id={`${id}-org`}
-            type="text"
+            label="Organization name"
             required
             value={org}
-            onChange={(event) => setOrg(event.target.value)}
+            onChange={(event) => setOrg(event.currentTarget.value)}
             placeholder="River County Development Coalition"
-            className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-midnight-400 focus:outline-none focus:ring-2 focus:ring-midnight-500/60"
           />
-        </div>
-        <button
-          type="submit"
-          className="mt-6 w-full rounded-full bg-midnight-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-midnight-500/30 transition hover:-translate-y-0.5 hover:bg-midnight-400"
-        >
+        </Stack>
+        <Button type="submit" size="md" radius="xl">
           Request early access
-        </button>
-        <p className="mt-3 text-xs text-slate-400">
+        </Button>
+        <Text size="xs" c="dimmed">
           We only email about onboarding. No spam, ever.
-        </p>
-      </div>
-    </form>
+        </Text>
+      </Stack>
+    </Paper>
   );
 }
