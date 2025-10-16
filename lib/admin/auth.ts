@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createServerClient, type SupabaseClient } from "@supabase/auth-helpers-nextjs";
+import { createServerComponentClient, type SupabaseClient } from "@supabase/auth-helpers-nextjs";
 
 import { logAdminAccessAttempt } from "@/lib/admin/audit";
 import { getSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
@@ -37,18 +37,11 @@ function createServerSupabaseClient(): SupabaseClient<SupabaseDatabase> {
   }
 
   const cookieStore = cookies();
-  return createServerClient<SupabaseDatabase>(supabaseUrl, supabaseKey, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value;
-      },
-      set(name: string, value: string, options: any) {
-        cookieStore.set({ name, value, ...options });
-      },
-      remove(name: string, options: any) {
-        cookieStore.set({ name, value: "", ...options, maxAge: 0 });
-      }
-    }
+  return createServerComponentClient<SupabaseDatabase>({
+    cookies: () => cookieStore
+  }, {
+    supabaseUrl,
+    supabaseKey
   });
 }
 
