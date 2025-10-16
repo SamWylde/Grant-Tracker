@@ -52,7 +52,7 @@ export function OrgInviteManager() {
     <RoleGate
       role="admin"
       fallback={
-        <Paper withBorder radius="lg" p="md" bg="rgba(10,24,50,0.6)">
+        <Paper withBorder radius="lg" p="md" variant="surfaceIndigo">
           <Text size="sm" c="dimmed">
             Only admins can manage organization invites.
           </Text>
@@ -66,7 +66,14 @@ export function OrgInviteManager() {
             Send an email invite so teammates can join {membership?.org?.name ?? "your organization"}.
           </Text>
         </Stack>
-        <Paper component="form" withBorder radius="lg" p="lg" bg="rgba(10,24,50,0.6)" onSubmit={handleSubmit}>
+        <Paper
+          component="form"
+          withBorder
+          radius="lg"
+          p="lg"
+          variant="surfaceIndigo"
+          onSubmit={handleSubmit}
+        >
           <Stack gap="md">
             <Group gap="md" grow align="flex-end">
               <TextInput
@@ -96,7 +103,7 @@ export function OrgInviteManager() {
             </Group>
           </Stack>
         </Paper>
-        <Paper withBorder radius="lg" bg="rgba(10,24,50,0.6)">
+        <Paper withBorder radius="lg" variant="surfaceIndigo">
           <Group justify="space-between" align="center" px="lg" py="sm">
             <Text size="sm" fw={600}>
               Pending invites

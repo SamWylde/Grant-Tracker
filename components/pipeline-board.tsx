@@ -60,7 +60,7 @@ export function PipelineBoard() {
 
   if (Object.keys(savedGrants).length === 0) {
     return (
-      <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)" ta="center">
+      <Paper withBorder radius="xl" p="xl" variant="surfacePrimary" ta="center">
         <Text size="sm" c="dimmed">
           Save a grant from the discovery list to start tracking it in your pipeline.
         </Text>
@@ -69,7 +69,7 @@ export function PipelineBoard() {
   }
 
   return (
-    <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+    <Paper withBorder radius="xl" p="xl" variant="surfacePrimary">
       <Stack gap="lg">
         <Stack gap={4}>
           <Title order={3}>Pipeline board</Title>
@@ -81,7 +81,7 @@ export function PipelineBoard() {
           {STAGES.map((stage) => {
             const grants = grantsByStage[stage] ?? [];
             return (
-              <Card key={stage} withBorder radius="lg" p="lg" bg="rgba(10,22,45,0.7)">
+              <Card key={stage} withBorder radius="lg" p="lg" variant="surfaceBoard">
                 <Group justify="space-between" align="center">
                   <Text size="sm" fw={600} tt="uppercase" c="dimmed">
                     {stage}
@@ -92,7 +92,7 @@ export function PipelineBoard() {
                 </Group>
                 <Stack gap="md" mt="md">
                   {grants.length === 0 && (
-                    <Paper withBorder radius="md" p="md" bg="rgba(6,14,32,0.6)">
+                    <Paper withBorder radius="md" p="md" variant="surfaceSunken">
                       <Text size="xs" c="dimmed">
                         No grants here yet.
                       </Text>
@@ -110,7 +110,7 @@ export function PipelineBoard() {
                     const note = noteByGrant[grant.id] ?? "";
                     const priorityColor = PRIORITY_COLORS[grant.priority] ?? "gray";
                     return (
-                      <Paper key={grant.id} withBorder radius="lg" p="md" bg="rgba(6,14,32,0.6)">
+                      <Paper key={grant.id} withBorder radius="lg" p="md" variant="surfaceSunken">
                         <Stack gap="sm">
                           <Group justify="space-between" align="flex-start">
                             <Stack gap={2}>
@@ -139,7 +139,7 @@ export function PipelineBoard() {
                             )}
                           </Group>
                           {nextReminder && (
-                            <Paper radius="md" p="sm" withBorder bg="rgba(2,10,28,0.8)">
+                            <Paper radius="md" p="sm" withBorder variant="surfaceOverlayStrong">
                               <Text size="xs" fw={600}>
                                 Next reminder
                               </Text>

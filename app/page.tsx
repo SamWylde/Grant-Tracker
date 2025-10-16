@@ -81,7 +81,7 @@ export default function HomePage() {
         <Container size="xl">
           <Group justify="space-between" align="center">
             <Group gap="sm" align="center">
-              <Paper radius="md" p="xs" withBorder shadow="md" bg="rgba(15,23,42,0.7)">
+              <Paper radius="md" p="xs" withBorder shadow="md" variant="surfaceElevatedStrong">
                 <Text fw={600} size="lg">
                   GT
                 </Text>
@@ -150,7 +150,7 @@ export default function HomePage() {
                     </Button>
                   </Group>
                   <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
-                    <Paper withBorder radius="lg" p="lg" bg="rgba(15,23,42,0.6)">
+                    <Paper withBorder radius="lg" p="lg" variant="surfaceElevatedSoft">
                       <Text size="sm" c="dimmed" fw={600} tt="uppercase">
                         Multi-stage deadlines
                       </Text>
@@ -158,7 +158,7 @@ export default function HomePage() {
                         LOI → Application → Report
                       </Text>
                     </Paper>
-                    <Paper withBorder radius="lg" p="lg" bg="rgba(15,23,42,0.6)">
+                    <Paper withBorder radius="lg" p="lg" variant="surfaceElevatedSoft">
                       <Text size="sm" c="dimmed" fw={600} tt="uppercase">
                         Automated reminders
                       </Text>
@@ -170,7 +170,7 @@ export default function HomePage() {
                 </Stack>
               </Grid.Col>
               <Grid.Col span={{ base: 12, lg: 5 }}>
-                <Paper radius="xl" p="lg" withBorder shadow="xl" bg="rgba(8,17,40,0.8)">
+                <Paper radius="xl" p="lg" withBorder shadow="xl" variant="surfacePrimaryStrong">
                   <Group justify="space-between" align="center">
                     <Text fw={600}>Pipeline overview</Text>
                     <Text size="xs" c="dimmed">
@@ -178,7 +178,7 @@ export default function HomePage() {
                     </Text>
                   </Group>
                   <Stack gap="md" mt="md">
-                    <Card radius="lg" withBorder padding="md" bg="rgba(46, 160, 67, 0.12)" style={{ borderColor: "rgba(76, 201, 240, 0.2)" }}>
+                    <Card radius="lg" withBorder padding="md" variant="surfacePositive">
                       <Text size="xs" c="teal.2" tt="uppercase" fw={700}>
                         Researching
                       </Text>
@@ -189,7 +189,7 @@ export default function HomePage() {
                         Draft due in 14 days
                       </Text>
                     </Card>
-                    <Card radius="lg" withBorder padding="md" bg="rgba(56, 128, 246, 0.12)" style={{ borderColor: "rgba(56, 128, 246, 0.3)" }}>
+                    <Card radius="lg" withBorder padding="md" variant="surfaceInfo">
                       <Text size="xs" c="blue.2" tt="uppercase" fw={700}>
                         Drafting
                       </Text>
@@ -200,7 +200,7 @@ export default function HomePage() {
                         Tasks: Budget review, letters of support
                       </Text>
                     </Card>
-                    <Card radius="lg" withBorder padding="md" bg="rgba(142, 84, 233, 0.12)" style={{ borderColor: "rgba(142, 84, 233, 0.3)" }}>
+                    <Card radius="lg" withBorder padding="md" variant="surfacePurple">
                       <Text size="xs" c="grape.2" tt="uppercase" fw={700}>
                         Submitted
                       </Text>
@@ -212,7 +212,7 @@ export default function HomePage() {
                       </Text>
                     </Card>
                   </Stack>
-                  <Paper withBorder radius="lg" mt="lg" p="md" bg="rgba(15,23,42,0.65)">
+                  <Paper withBorder radius="lg" mt="lg" p="md" variant="surfaceElevated">
                     <Text fw={600}>Next reminder</Text>
                     <Text size="xs" c="dimmed" mt={4}>
                       LOI due in 3 days · Email + SMS
@@ -224,7 +224,7 @@ export default function HomePage() {
           </Container>
         </Box>
 
-        <Box id="features" component="section" py={80} bg="rgba(2,8,23,0.7)">
+        <Paper id="features" component="section" py={80} variant="surfaceBackdrop" radius={0}>
           <Container size="xl">
             <Stack gap="md" align="center" ta="center">
               <Title order={2}>Purpose-built for small and rural nonprofits</Title>
@@ -234,7 +234,13 @@ export default function HomePage() {
             </Stack>
             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xl" mt={48}>
               {features.map((feature) => (
-                <Card key={feature.title} withBorder radius="xl" padding="xl" bg="rgba(15,23,42,0.65)">
+                <Card
+                  key={feature.title}
+                  withBorder
+                  radius="xl"
+                  padding="xl"
+                  variant="surfaceElevated"
+                >
                   <ThemeIcon size={40} radius="md" variant="light" color="midnight">
                     <feature.icon size="1.5rem" />
                   </ThemeIcon>
@@ -248,7 +254,7 @@ export default function HomePage() {
               ))}
             </SimpleGrid>
           </Container>
-        </Box>
+        </Paper>
 
         <Box id="steps" component="section" py={80}>
           <Container size="xl">
@@ -259,7 +265,7 @@ export default function HomePage() {
                   <Text size="lg" c="dimmed">
                     From data import to ICS calendar subscriptions, onboarding is guided end-to-end by our team so you are ready for the next funding cycle.
                   </Text>
-                  <Paper withBorder radius="lg" p="md" bg="rgba(15,23,42,0.65)">
+                  <Paper withBorder radius="lg" p="md" variant="surfaceElevated">
                     <Stack gap="xs">
                       <Group gap="xs">
                         <Badge color="midnight" radius="sm" variant="light">
@@ -280,7 +286,13 @@ export default function HomePage() {
               <Grid.Col span={{ base: 12, lg: 7 }}>
                 <Stack gap="lg">
                   {steps.map((step) => (
-                    <Paper key={step.number} withBorder radius="xl" p="lg" bg="rgba(10,20,45,0.65)">
+                    <Paper
+                      key={step.number}
+                      withBorder
+                      radius="xl"
+                      p="lg"
+                      variant="surfaceHighlight"
+                    >
                       <Group align="flex-start" gap="lg">
                         <Badge radius="xl" size="lg" variant="light" color="midnight">
                           {step.number}
@@ -300,7 +312,7 @@ export default function HomePage() {
           </Container>
         </Box>
 
-        <Box id="workspace" component="section" py={80} bg="rgba(2,8,23,0.7)">
+        <Paper id="workspace" component="section" py={80} variant="surfaceBackdrop" radius={0}>
           <Container size="xl">
             <Stack gap="md" align="center" ta="center">
               <Title order={2}>See the live grant workspace</Title>
@@ -314,7 +326,7 @@ export default function HomePage() {
               <PipelineBoard />
             </Stack>
           </Container>
-        </Box>
+        </Paper>
 
         <Box id="waitlist" component="section" py={80}>
           <Container size="xl">
@@ -339,7 +351,7 @@ export default function HomePage() {
           </Container>
         </Box>
 
-        <Box id="faq" component="section" py={80} bg="rgba(2,8,23,0.7)">
+        <Paper id="faq" component="section" py={80} variant="surfaceBackdrop" radius={0}>
           <Container size="xl">
             <Stack gap="md" align="center" ta="center">
               <Title order={2}>Built for real grant teams</Title>
@@ -348,25 +360,25 @@ export default function HomePage() {
               </Text>
             </Stack>
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="xl" mt={48}>
-              <Card withBorder radius="xl" padding="xl" bg="rgba(15,23,42,0.65)">
+              <Card withBorder radius="xl" padding="xl" variant="surfaceElevated">
                 <Text fw={600}>Where does the grant data come from?</Text>
                 <Text size="sm" c="dimmed" mt="sm">
                   We integrate directly with Grants.gov and refresh opportunities every night. You can also add custom foundation grants manually.
                 </Text>
               </Card>
-              <Card withBorder radius="xl" padding="xl" bg="rgba(15,23,42,0.65)">
+              <Card withBorder radius="xl" padding="xl" variant="surfaceElevated">
                 <Text fw={600}>Can we keep our existing spreadsheets?</Text>
                 <Text size="sm" c="dimmed" mt="sm">
                   Absolutely—import them via CSV to seed your pipeline. Grant Tracker keeps the data in sync going forward so you never start from scratch.
                 </Text>
               </Card>
-              <Card withBorder radius="xl" padding="xl" bg="rgba(15,23,42,0.65)">
+              <Card withBorder radius="xl" padding="xl" variant="surfaceElevated">
                 <Text fw={600}>How do reminders work?</Text>
                 <Text size="sm" c="dimmed" mt="sm">
                   Add LOI, application, and report milestones for each grant and we send email (and SMS on the Pro plan) reminders at T-30/14/7/3/1 and day-of automatically.
                 </Text>
               </Card>
-              <Card withBorder radius="xl" padding="xl" bg="rgba(15,23,42,0.65)">
+              <Card withBorder radius="xl" padding="xl" variant="surfaceElevated">
                 <Text fw={600}>Do you support multiple organizations?</Text>
                 <Text size="sm" c="dimmed" mt="sm">
                   Yes. Org data is isolated with row-level security. Each nonprofit can invite unlimited teammates with admin or contributor roles.
@@ -374,7 +386,7 @@ export default function HomePage() {
               </Card>
             </SimpleGrid>
           </Container>
-        </Box>
+        </Paper>
       </Box>
 
       <Box component="footer" py={48} px="xl">

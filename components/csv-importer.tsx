@@ -290,7 +290,7 @@ export function CsvImporter() {
           Upload your spreadsheet export and we&apos;ll map deadlines, owners, and checklist tasks into Grant Tracker.
         </Text>
       </Stack>
-      <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+      <Paper withBorder radius="xl" p="xl" variant="surfacePrimary">
         <Stack gap="md">
           <Title order={4}>Column mapping</Title>
           <Text size="xs" c="dimmed">
@@ -298,14 +298,20 @@ export function CsvImporter() {
           </Text>
           <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
             {columnGuidance.map((item) => (
-              <Paper key={item.key} withBorder radius="lg" p="md" bg="rgba(6,14,32,0.6)">
+              <Paper
+                key={item.key}
+                withBorder
+                radius="lg"
+                p="md"
+                variant="surfaceSunken"
+              >
                 <Text size="xs" c="dimmed" tt="uppercase">
                   {item.key}
                 </Text>
                 <Text fw={600}>{item.header}</Text>
               </Paper>
             ))}
-            <Paper withBorder radius="lg" p="md" bg="rgba(16, 89, 70, 0.4)">
+            <Paper withBorder radius="lg" p="md" variant="surfacePositiveTint">
               <Text size="xs" c="teal.2" tt="uppercase" fw={600}>
                 Checklist tasks
               </Text>
@@ -317,7 +323,7 @@ export function CsvImporter() {
           </SimpleGrid>
         </Stack>
       </Paper>
-      <Paper withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+      <Paper withBorder radius="xl" p="xl" variant="surfacePrimary">
         <Stack gap="md">
           <FileInput
             label="Upload CSV file"

@@ -111,7 +111,7 @@ export default function MyTasksPage() {
             Stay ahead of due dates across every grant you&apos;re supporting. Check items off as you complete them.
           </Text>
         </Stack>
-        <Paper withBorder radius="xl" bg="rgba(8,18,40,0.7)">
+        <Paper withBorder radius="xl" variant="surfacePrimary">
           <ScrollArea>
             <Table highlightOnHover verticalSpacing="sm">
               <Table.Thead>

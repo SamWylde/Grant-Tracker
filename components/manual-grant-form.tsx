@@ -87,7 +87,14 @@ export function ManualGrantForm() {
   };
 
   return (
-    <Paper component="form" onSubmit={handleSubmit} withBorder radius="xl" p="xl" bg="rgba(8,18,40,0.7)">
+    <Paper
+      component="form"
+      onSubmit={handleSubmit}
+      withBorder
+      radius="xl"
+      p="xl"
+      variant="surfacePrimary"
+    >
       <Stack gap="xl">
         <Stack gap={4}>
           <Title order={2}>Log a manual opportunity</Title>
@@ -166,7 +173,14 @@ export function ManualGrantForm() {
           autosize
           minRows={3}
         />
-        <Stack gap="md" component={Paper} withBorder radius="lg" p="lg" bg="rgba(10,24,50,0.6)">
+        <Stack
+          gap="md"
+          component={Paper}
+          withBorder
+          radius="lg"
+          p="lg"
+          variant="surfaceIndigo"
+        >
           <Stack gap={4}>
             <Text fw={600}>Checklist tasks</Text>
             <Text size="xs" c="dimmed">
@@ -180,7 +194,7 @@ export function ManualGrantForm() {
           )}
           <Stack gap="sm">
             {tasks.map((task, index) => (
-              <Paper key={`task-${index}`} withBorder radius="md" p="md" bg="rgba(6,14,32,0.6)">
+              <Paper key={`task-${index}`} withBorder radius="md" p="md" variant="surfaceSunken">
                 <Grid gutter="md" align="center">
                   <Grid.Col span={{ base: 12, md: 6 }}>
                     <TextInput

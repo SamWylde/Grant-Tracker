@@ -17,7 +17,7 @@ export function RoleGate({
 
   if (isLoading) {
     return (
-      <Paper withBorder radius="md" p="md" bg="rgba(8,18,40,0.7)">
+      <Paper withBorder radius="md" p="md" variant="surfacePrimary">
         <Text size="sm" c="dimmed">
           Checking permissions…
         </Text>

@@ -12,7 +12,7 @@ export function WaitlistForm() {
 
   if (submitted) {
     return (
-      <Paper withBorder radius="xl" p="xl" bg="rgba(10, 28, 60, 0.7)">
+      <Paper withBorder radius="xl" p="xl" variant="surfaceNavy">
         <Stack gap="sm">
           <Title order={4}>You are on the list!</Title>
           <Text size="sm" c="dimmed">
@@ -29,7 +29,7 @@ export function WaitlistForm() {
       withBorder
       radius="xl"
       p="xl"
-      bg="rgba(10, 28, 60, 0.7)"
+      variant="surfaceNavy"
       onSubmit={(event) => {
         event.preventDefault();
         setSubmitted(true);
