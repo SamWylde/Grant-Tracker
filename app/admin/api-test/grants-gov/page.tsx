@@ -278,7 +278,13 @@ export default function GrantsGovTesterPage() {
       <Paper withBorder radius="lg" p="md" variant="surfacePrimary">
         <Stack gap="md">
           <Group gap="md" wrap="wrap">
-            <Select label="Sort by" data={SORT_OPTIONS} value={sortBy} onChange={setSortBy} withinPortal />
+            <Select
+              label="Sort by"
+              data={SORT_OPTIONS}
+              value={sortBy}
+              onChange={setSortBy}
+              comboboxProps={{ withinPortal: true }}
+            />
             <NumberInput
               label="Start record"
               min={0}
@@ -305,7 +311,7 @@ export default function GrantsGovTesterPage() {
               value={states}
               onChange={setStates}
               searchable
-              withinPortal
+              comboboxProps={{ withinPortal: true }}
             />
             <MultiSelect
               label="Categories"
@@ -313,7 +319,7 @@ export default function GrantsGovTesterPage() {
               value={categories}
               onChange={setCategories}
               searchable
-              withinPortal
+              comboboxProps={{ withinPortal: true }}
             />
           </Group>
           <TextInput label="API key" value={apiKey} onChange={(event) => setApiKey(event.currentTarget.value)} placeholder="Optional" />
