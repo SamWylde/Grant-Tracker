@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { getSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 
 type AuditLogPayload = {
@@ -10,8 +12,24 @@ type AuditLogPayload = {
   userAgent?: string | null;
 };
 
+function resolveAuditClient(): SupabaseClient | null {
+  try {
+    return getSupabaseServiceRoleClient();
+  } catch (error) {
+    console.warn(
+      "Supabase service role client is not configured; skipping admin audit logging.",
+      error
+    );
+    return null;
+  }
+}
+
 export async function logAdminAction(payload: AuditLogPayload): Promise<void> {
-  const client = getSupabaseServiceRoleClient();
+  const client = resolveAuditClient();
+  if (!client) {
+    return;
+  }
+
   try {
     const { error } = await client.from("admin_audit_log").insert({
       admin_user_id: payload.adminUserId,
