@@ -1,7 +1,10 @@
-import { headers } from "next/headers";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 type ServerClient = SupabaseClient;
+
+type ServerClientOptions = {
+  headers?: HeadersInit;
+};
 
 export function isSupabaseServerConfigured(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
@@ -22,17 +25,40 @@ function resolveServerConfig() {
   return { url, key };
 }
 
-export function getSupabaseServerClient(): ServerClient {
+function normalizeHeaders(input?: HeadersInit): Record<string, string> | undefined {
+  if (!input) return undefined;
+
+  if (typeof Headers !== "undefined" && input instanceof Headers) {
+    const entries: Record<string, string> = {};
+    input.forEach((value, key) => {
+      entries[key] = value;
+    });
+    return entries;
+  }
+
+  if (Array.isArray(input)) {
+    return Object.fromEntries(input.map(([key, value]) => [key, String(value)]));
+  }
+
+  const record = input as Record<string, string | ReadonlyArray<string>>;
+  return Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [key, Array.isArray(value) ? value.join(",") : String(value)])
+  );
+}
+
+export function getSupabaseServerClient(options: ServerClientOptions = {}): ServerClient {
   const { url, key } = resolveServerConfig();
-  return createClient(url, key, {
+  const headers = normalizeHeaders(options.headers);
+
+  const client = createClient(url, key, {
     auth: {
       persistSession: false,
       autoRefreshToken: false
     },
     global: {
-      headers: {
-        ...Object.fromEntries(headers().entries())
-      }
+      headers: headers ?? {}
     }
   });
+
+  return client;
 }
